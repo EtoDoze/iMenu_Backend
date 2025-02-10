@@ -56,7 +56,17 @@ try{
             return;
 
         }
-        res.status(200).json({message: "Usuario encontrado", user: finduser})
+
+        const passwordMatch = await bcrypt.compare(senha, user.password);
+
+        if (!passwordMatch) return res.status(401).json({ error: "Credenciais inválidas" });
+
+    // Gerar token JWT
+    res.status(200).json({message: "Usuario encontrado", user: finduser})
+    const token = jwt.sign({ userId: user.id }, SECRET_KEY, { expiresIn: "1h" });
+
+    res.json({ token });
+
     }
     catch{console.log("deu erro"); return res.status(500).json({message: "usuario não achado"})}
 })
