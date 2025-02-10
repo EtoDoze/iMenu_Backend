@@ -11,20 +11,33 @@ import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 const SECRET_KEY = "imenu123"; // Melhor armazenar em .env
 
-userRouter.post('/create', async (req,res) => {
-    try{
-    const {name, email, password} = req.body
+userRouter.post('/create', async (req, res) => {
+    try {
+        const { name, email, password } = req.body;
+
+        // Verificar se todos os campos necessários foram enviados
+        if (!name || !email || !password) {
+            return res.status(400).json({ message: "Todos os campos são obrigatórios!" });
+        }
+
+        // Criar a senha hash
         const hashedPassword = await bcrypt.hash(password, 10);
+
         // Criar usuário no banco
         const user = await prisma.user.create({
-          data: {name, email, password: hashedPassword },
+            data: { name, email, password: hashedPassword },
         });
-    res.status(201).json({message: "usuario criado", user: user})}
-    catch(err){
-        res.status(500).json({message: "erro ao criar", err})
-        return;
+
+        res.status(201).json({ message: "Usuário criado com sucesso", user });
+    } catch (err) {
+        // Logar o erro completo para depuração
+        console.error("Erro ao criar usuário:", err);
+
+        // Responder com um erro genérico e a mensagem do erro
+        res.status(500).json({ message: "Erro ao criar usuário", error: err.message });
     }
-})
+});
+
 
 userRouter.post('/login', async (req,res) => {
 try{
