@@ -7,15 +7,19 @@ userRouter.use(Express.json())
 const prisma = new PrismaClient()
 userRouter.use(cors())
 
+import bcrypt from 'bcrypt';
+import jwt from 'jsonwebtoken';
+const SECRET_KEY = "imenu123"; // Melhor armazenar em .env
+
 userRouter.post('/create', async (req,res) => {
     try{
     const {name, email, password} = req.body
-    const newuser = await prisma.user.create({
-        data:{
-            name, email, password
-        },
-    })
-    res.status(201).json({message: "usuario criado", user: newuser})}
+        const hashedPassword = await bcrypt.hash(password, 10);
+        // Criar usuário no banco
+        const user = await prisma.user.create({
+          data: {name, email, password: hashedPassword },
+        });
+    res.status(201).json({message: "usuario criado", user: user})}
     catch(err){
         res.status(500).json({message: "erro ao criar", err})
         return;
