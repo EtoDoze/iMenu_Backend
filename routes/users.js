@@ -39,37 +39,45 @@ userRouter.post('/create', async (req, res) => {
 });
 
 
-userRouter.post('/login', async (req,res) => {
-try{
-    const {senha, email} = req.body
+userRouter.post('/login', async (req, res) => {
+    try {
+        const { senha, email } = req.body;
+
+        // Buscar o usuário no banco de dados
         const finduser = await prisma.user.findUnique({
             where: {
-                email: req.body.email
+                email: email // Use diretamente o email que foi enviado no body
             }
-        })
-        if(!finduser){
-            res.status(404).json({message: "Usuario não encontrado"})
-            return;
-        }    
-        if(finduser == null){
-            res.status(404).json({message: "Usuario não encontrado"})
-            return;
+        });
 
+        // Verificar se o usuário foi encontrado
+        if (!finduser) {
+            return res.status(404).json({ message: "Usuário não encontrado" });
         }
 
-        const passwordMatch = await bcrypt.compare(senha, user.password);
+        // Verificar se a senha está correta
+        const passwordMatch = await bcrypt.compare(senha, finduser.password); // Usando finduser ao invés de user
 
-        if (!passwordMatch) return res.status(401).json({ error: "Credenciais inválidas" });
+        if (!passwordMatch) {
+            return res.status(401).json({ error: "Credenciais inválidas" });
+        }
 
-    // Gerar token JWT
-    res.status(200).json({message: "Usuario encontrado", user: finduser})
-    const token = jwt.sign({ userId: user.id }, SECRET_KEY, { expiresIn: "1h" });
+        // Gerar o token JWT
+        const token = jwt.sign({ userId: finduser.id }, SECRET_KEY, { expiresIn: "1h" });
 
-    res.json({ token });
+        // Responder com o token
+        return res.status(200).json({
+            message: "Usuário logado com sucesso",
+            user: { id: finduser.id, email: finduser.email }, // Retornar informações relevantes do usuário
+            token: token
+        });
 
+    } catch (err) {
+        console.log("Erro ao logar com o usuário:", err);
+        return res.status(500).json({ message: "Erro interno ao tentar logar", error: err.message });
     }
-    catch{console.log("deu erro"); return res.status(500).json({message: "usuario não achado"})}
-})
+});
+
 
 
 export default userRouter
