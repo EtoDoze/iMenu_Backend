@@ -15,6 +15,9 @@ import dotenv from 'dotenv';
 dotenv.config();
 const SECRET_KEY = process.env.SECRET_KEY;
 
+
+
+
 bcrypt.hash(testPassword, 10, function(err, hash) {
   if (err) console.error(err);
   console.log(hash); // Verifique se o hash está sendo gerado corretamente
@@ -50,43 +53,53 @@ userRouter.post('/create', async (req, res) => {
 });
 
 
+
+// Verifique se o Express está configurado para usar JSON
+userRouter.use(express.json());
+
 userRouter.post('/login', async (req, res) => {
+  try {
+    const { email, password } = req.body;
 
-    try{
-        const {email, password} = req.body;
-
-                // Verificar se todos os campos necessários foram enviados
-                if (!email || !password) {
-                    return res.status(400).json({ message: "Todos os campos são obrigatórios!" });
-                }
-        
-        const finduser = await prisma.user.findUnique({
-            data:{
-                email: email
-            }
-        })
-            if(!finduser){
-                return res.status(401).json({message: "usuario nn encontrado"})
-            }
-            
-            const isPasswordValid = await bcrypt.compare(password, finduser.password);
-
-            if (!isPasswordValid) {
-                return res.status(401).json({ message: 'Credenciais inválidas' });
-              }
-              const token = jwt.sign({ userId: user.id, email: user.email }, SECRET_KEY, {
-                expiresIn: '1h',
-              });
-          
-
-        res.status(201).json({ message: "Usuário achado com sucesso", finduser });
-        res.status(200).json({
-            message: 'Login realizado com sucesso!',
-            token,
-          });
+    // Verificar se todos os campos necessários foram enviados
+    if (!email || !password) {
+      return res.status(400).json({ message: "Todos os campos são obrigatórios!" });
     }
-    catch(err){
-        res.status(401).json({message: "erro ao logar", err})
+
+    // Buscar o usuário no banco de dados
+    const finduser = await prisma.user.findUnique({
+      where: { email: email } // Aqui deve ser `where` e não `data`
+    });
+
+    if (!finduser) {
+      return res.status(401).json({ message: "Usuário não encontrado" });
     }
-})
+
+    // Verificar se a senha está correta
+    const isPasswordValid = await bcrypt.compare(password, finduser.password);
+
+    if (!isPasswordValid) {
+      return res.status(401).json({ message: 'Credenciais inválidas' });
+    }
+
+    // Gerar o token JWT
+    const token = jwt.sign({ userId: finduser.id, email: finduser.email }, SECRET_KEY, {
+      expiresIn: '1h',
+    });
+
+    // Retornar o token para o cliente
+    return res.status(200).json({
+      message: 'Login realizado com sucesso!',
+      token,
+    });
+
+  } catch (error) {
+    console.error('Erro ao logar com o usuário:', error);
+    return res.status(500).json({
+      message: 'Erro interno ao tentar logar',
+      error: error.message,
+    });
+  }
+});
+
 export default userRouter
