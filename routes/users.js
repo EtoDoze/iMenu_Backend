@@ -10,16 +10,17 @@ userRouter.use(cors())
 import bcrypt from 'bcryptjs';
 
 const testPassword = 'minhaSenha';
+import jwt from 'jsonwebtoken';
+import dotenv from 'dotenv';
+dotenv.config();
+const SECRET_KEY = process.env.SECRET_KEY;
 
 bcrypt.hash(testPassword, 10, function(err, hash) {
   if (err) console.error(err);
   console.log(hash); // Verifique se o hash está sendo gerado corretamente
 });
 
-import jwt from 'jsonwebtoken';
-import dotenv from 'dotenv';
-dotenv.config();
-const SECRET_KEY = process.env.SECRET_KEY;
+
 
 userRouter.post('/create', async (req, res) => {
     try {

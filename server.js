@@ -21,7 +21,7 @@ app.get('/', (req,res) => {
     res.send("Servidor rodando!")
 })
 
-const PORTA = 3005
+const PORTA = 3006
 app.listen(PORTA,() =>{
     console.log("Servidor vivo na porta: "+PORTA)
 })
