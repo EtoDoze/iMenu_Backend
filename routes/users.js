@@ -52,37 +52,41 @@ userRouter.post('/create', async (req, res) => {
 
 userRouter.post('/login', async (req, res) => {
 
-    const email = req.body.email;
-    const password = req.body.password;
-  
-    const user = await prisma.user.findUnique({
-      where: {
-        email
-      }
-    })
-  
-    if (!user) {
-      console.log('email não cadastrado: ', email)
-      res.status(400).send('User or password invalid')
+    try{
+        const {email, password} = req.body;
+
+                // Verificar se todos os campos necessários foram enviados
+                if (!email || !password) {
+                    return res.status(400).json({ message: "Todos os campos são obrigatórios!" });
+                }
+        
+        const finduser = await prisma.user.findUnique({
+            data:{
+                email: email
+            }
+        })
+            if(!finduser){
+                return res.status(401).json({message: "usuario nn encontrado"})
+            }
+            
+            const isPasswordValid = await bcrypt.compare(password, finduser.password);
+
+            if (!isPasswordValid) {
+                return res.status(401).json({ message: 'Credenciais inválidas' });
+              }
+              const token = jwt.sign({ userId: user.id, email: user.email }, SECRET_KEY, {
+                expiresIn: '1h',
+              });
+          
+
+        res.status(201).json({ message: "Usuário achado com sucesso", finduser });
+        res.status(200).json({
+            message: 'Login realizado com sucesso!',
+            token,
+          });
     }
-  
-  
-    const passwordIsValid = bcrypt.compareSync(password, user.password)
-  
-    if (passwordIsValid) {
-      const token = jwt.sign({ id: user.id }, process.env.JWT_SECRET, { expiresIn: '1d' })
-      delete user.password
-      res.send({
-        user,
-        token
-      })
-    } else {
-      res.status(400).send('User or password invalid')
+    catch(err){
+        res.status(401).json({message: "erro ao logar", err})
     }
-  
-  })
-
-
-
-
+})
 export default userRouter
