@@ -50,7 +50,7 @@ userRouter.post('/create', async (req, res) => {
 });
 
 
-authRouter.post('/login', async (req, res) => {
+userRouter.post('/login', async (req, res) => {
 
     const email = req.body.email;
     const password = req.body.password;
