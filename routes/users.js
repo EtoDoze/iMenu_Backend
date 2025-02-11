@@ -58,7 +58,7 @@ userRouter.post('/login', async (req, res) => {
     try {
       const { email, password } = req.body;
       // Verificar se todos os campos necessários foram enviado
-      // Buscar o usuário no banco de dados
+        console.log(email, password)
       const finduser = await prisma.user.findUnique({
         where: { email: email }
       });
