@@ -76,7 +76,8 @@ userRouter.post('/login', async (req, res) => {
         }
 
         // Gerar o token JWT
-        const token = jwt.sign({ userId: finduser.id }, SECRET_KEY, { expiresIn: "1h" });
+        const token = jwt.sign({ userId: finduser.id }, process.env.SECRET_KEY, { expiresIn: "1h" });
+
 
         // Retornar o token para o cliente
         return res.status(200).json({
