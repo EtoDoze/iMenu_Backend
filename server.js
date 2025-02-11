@@ -4,11 +4,12 @@ import userRouter from './routes/users.js';
 import admRouter from './routes/admin.js';
 import cors from 'cors';
 
-import bcrypt from 'bcrypt';
+import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
-const SECRET_KEY = "imenu123"; // Melhor armazenar em .env
 const prisma = new PrismaClient;
 const app = Express();
+import dotenv from 'dotenv';
+dotenv.config();
 
 app.use(userRouter)
 app.use(admRouter)
