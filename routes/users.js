@@ -7,9 +7,19 @@ userRouter.use(Express.json())
 const prisma = new PrismaClient()
 userRouter.use(cors())
 
-import bcrypt from 'bcrypt';
+import bcrypt from 'bcryptjs';
+
+const testPassword = 'minhaSenha';
+
+bcrypt.hash(testPassword, 10, function(err, hash) {
+  if (err) console.error(err);
+  console.log(hash); // Verifique se o hash está sendo gerado corretamente
+});
+
 import jwt from 'jsonwebtoken';
-const SECRET_KEY = "imenu123"; // Melhor armazenar em .env
+import dotenv from 'dotenv';
+dotenv.config();
+const SECRET_KEY = process.env.SECRET_KEY;
 
 userRouter.post('/create', async (req, res) => {
     try {
@@ -43,40 +53,47 @@ userRouter.post('/login', async (req, res) => {
     try {
         const { senha, email } = req.body;
 
+        // Verificar se os campos obrigatórios foram passados
+        if (!email || !senha) {
+            return res.status(400).json({ message: "Email e senha são obrigatórios" });
+        }
+
         // Buscar o usuário no banco de dados
         const finduser = await prisma.user.findUnique({
-            where: {
-                email: email // Use diretamente o email que foi enviado no body
-            }
+            where: { email }
         });
 
-        // Verificar se o usuário foi encontrado
         if (!finduser) {
             return res.status(404).json({ message: "Usuário não encontrado" });
         }
 
         // Verificar se a senha está correta
-        const passwordMatch = await bcrypt.compare(senha, finduser.password); // Usando finduser ao invés de user
+        const passwordMatch = await bcrypt.compare(senha, finduser.password);
 
         if (!passwordMatch) {
-            return res.status(401).json({ error: "Credenciais inválidas" });
+            return res.status(401).json({ message: "Senha incorreta. Tente novamente." });
         }
 
         // Gerar o token JWT
         const token = jwt.sign({ userId: finduser.id }, SECRET_KEY, { expiresIn: "1h" });
 
-        // Responder com o token
+        // Retornar o token para o cliente
         return res.status(200).json({
             message: "Usuário logado com sucesso",
-            user: { id: finduser.id, email: finduser.email }, // Retornar informações relevantes do usuário
-            token: token
+            user: { id: finduser.id, email: finduser.email },
+            token
         });
 
     } catch (err) {
-        console.log("Erro ao logar com o usuário:", err);
-        return res.status(500).json({ message: "Erro interno ao tentar logar", error: err.message });
+        console.log("Erro ao logar com o usuário:", err); // Detalhes do erro
+        return res.status(500).json({
+            message: "Erro interno ao tentar logar",
+            error: err.message,  // Aqui retornamos o erro detalhado
+            stack: err.stack     // E o stack trace para mais detalhes
+        });
     }
 });
+
 
 
 
