@@ -14,6 +14,7 @@ import jwt from 'jsonwebtoken';
 import dotenv from 'dotenv';
 dotenv.config();
 const SECRET_KEY = process.env.SECRET_KEY;
+userRouter.use(cors());
 
 
 
@@ -53,53 +54,45 @@ userRouter.post('/create', async (req, res) => {
 });
 
 
-
-// Verifique se o Express está configurado para usar JSON
-userRouter.use(express.json());
-
 userRouter.post('/login', async (req, res) => {
-  try {
-    const { email, password } = req.body;
-
-    // Verificar se todos os campos necessários foram enviados
-    if (!email || !password) {
-      return res.status(400).json({ message: "Todos os campos são obrigatórios!" });
+    try {
+      const { email, password } = req.body;
+      // Verificar se todos os campos necessários foram enviado
+      // Buscar o usuário no banco de dados
+      const finduser = await prisma.user.findUnique({
+        where: { email: email }
+      });
+  
+      if (!finduser) {
+        return res.status(401).json({ message: "Usuário não encontrado" });
+      }
+  
+  
+      const isPasswordValid = await bcrypt.compare(password, finduser.password);
+  
+      if (!isPasswordValid) {
+        return res.status(401).json({ message: 'Credenciais inválidas' });
+      }
+  
+      // Gerar o token JWT
+      const token = jwt.sign({ userId: finduser.id, email: finduser.email }, SECRET_KEY, {
+        expiresIn: '1h',
+      });
+  
+      // Retornar o token para o cliente
+      return res.status(200).json({
+        message: 'Login realizado com sucesso!',
+        token,
+      });
+  
+    } catch (error) {
+      console.error('Erro ao logar com o usuário:', error);
+      return res.status(500).json({
+        message: 'Erro interno ao tentar logar',
+        error: error.message,
+      });
     }
-
-    // Buscar o usuário no banco de dados
-    const finduser = await prisma.user.findUnique({
-      where: { email: email } // Aqui deve ser `where` e não `data`
-    });
-
-    if (!finduser) {
-      return res.status(401).json({ message: "Usuário não encontrado" });
-    }
-
-    // Verificar se a senha está correta
-    const isPasswordValid = await bcrypt.compare(password, finduser.password);
-
-    if (!isPasswordValid) {
-      return res.status(401).json({ message: 'Credenciais inválidas' });
-    }
-
-    // Gerar o token JWT
-    const token = jwt.sign({ userId: finduser.id, email: finduser.email }, SECRET_KEY, {
-      expiresIn: '1h',
-    });
-
-    // Retornar o token para o cliente
-    return res.status(200).json({
-      message: 'Login realizado com sucesso!',
-      token,
-    });
-
-  } catch (error) {
-    console.error('Erro ao logar com o usuário:', error);
-    return res.status(500).json({
-      message: 'Erro interno ao tentar logar',
-      error: error.message,
-    });
-  }
-});
+  });
+  
 
 export default userRouter
