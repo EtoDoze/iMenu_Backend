@@ -17,7 +17,22 @@ import authenticateToken from './routes/auth.js';
 app.use(Express.json())
 app.use(cors());
 
+const { exec } = require("child_process");//
 
+// Executa as migrações no início do servidor
+const { execSync } = require("child_process");
+if (process.env.NODE_ENV !== "production") {
+    execSync("npx prisma migrate dev", { stdio: "inherit" });
+}
+
+
+
+try {
+    execSync("npx prisma migrate deploy", { stdio: "inherit" });
+    console.log("Migrações aplicadas com sucesso.");
+} catch (error) {
+    console.error("Erro ao aplicar migrações:", error);
+}
 
 app.get('/', (req,res) => {
     res.send("Servidor rodando!")
