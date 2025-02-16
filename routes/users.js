@@ -77,7 +77,7 @@ userRouter.post('/login', async (req, res) => {
       }
   
       // Gerar o token JWT
-      const token = jwt.sign({ userId: finduser.id, email: finduser.email }, SECRET_KEY, {
+      const token = jwt.sign({ userId: finduser.id, email: finduser.email, name: finduser.name, dono: finduser.dono }, SECRET_KEY, {
         expiresIn: '1h',
       });
   
@@ -99,10 +99,12 @@ userRouter.post('/login', async (req, res) => {
 
   userRouter.get('/dados', authenticateToken, async (req, res) => {
     try {
+        console.log("Usuário do request:", req.user); // Verifique o conteúdo de req.user
         const user = req.user;
         res.status(200).json({ name: user.name, dono: user.dono });
     } catch (err) {
         res.status(500).json({ message: "Erro ao buscar usuário", error: err.message });
     }
 });
+
 export default userRouter
