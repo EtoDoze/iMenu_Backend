@@ -8,13 +8,15 @@ const prisma = new PrismaClient()
 userRouter.use(cors())
 
 import bcrypt from 'bcryptjs';
+import authenticateToken from './auth.js';  // ES Module
+
 
 const testPassword = 'minhaSenha';
 import jwt from 'jsonwebtoken';
 import dotenv from 'dotenv';
 dotenv.config();
 const SECRET_KEY = process.env.SECRET_KEY;
-userRouter.use(cors());
+userRouter.use(cors());  // CommonJS
 
 
 
@@ -95,4 +97,12 @@ userRouter.post('/login', async (req, res) => {
   });
   
 
+  userRouter.get('/dados', authenticateToken, async (req, res) => {
+    try {
+        const user = req.user;
+        res.status(200).json({ name: user.name, dono: user.dono });
+    } catch (err) {
+        res.status(500).json({ message: "Erro ao buscar usuário", error: err.message });
+    }
+});
 export default userRouter

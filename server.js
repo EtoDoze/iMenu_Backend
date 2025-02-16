@@ -13,6 +13,7 @@ dotenv.config();
 
 app.use(userRouter)
 app.use(admRouter)
+import authenticateToken from './routes/auth.js';
 app.use(Express.json())
 app.use(cors());
 
