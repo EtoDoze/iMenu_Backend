@@ -16,9 +16,12 @@ function authenticateToken(req, res, next) {
         if (err) {
             return res.status(403).json({ message: "Token inválido" });
         }
+        
+        console.log("Usuário decodificado do token:", user); // Adicione este log
         req.user = user; // Adiciona as informações do usuário ao request
         next();
     });
 }
+
 
 export default authenticateToken;

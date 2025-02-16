@@ -17,10 +17,11 @@ import authenticateToken from './routes/auth.js';
 app.use(Express.json())
 app.use(cors());
 
-const { exec } = require("child_process");//
+import { exec } from 'child_process';
+
 
 // Executa as migrações no início do servidor
-const { execSync } = require("child_process");
+import { execSync } from "child_process";
 if (process.env.NODE_ENV !== "production") {
     execSync("npx prisma migrate dev", { stdio: "inherit" });
 }
