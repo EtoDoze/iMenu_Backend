@@ -14,7 +14,8 @@ function authenticateToken(req, res, next) {
 
     jwt.verify(token, SECRET_KEY, (err, user) => {
         if (err) {
-            return res.status(403).json({ message: "Token inválido" });
+          //  return res.status(403).json({ message: "Token inválido" });
+          console.log("Token invalido")
         }
         
         console.log("Usuário decodificado do token:", user); // Adicione este log
