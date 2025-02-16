@@ -28,7 +28,7 @@ bcrypt.hash(testPassword, 10, function(err, hash) {
 
 userRouter.post('/create', async (req, res) => {
     try {
-        const { name, email, password } = req.body;
+        const { name, email, password, dono} = req.body;
 
         // Verificar se todos os campos necessários foram enviados
         if (!name || !email || !password) {
@@ -40,7 +40,7 @@ userRouter.post('/create', async (req, res) => {
 
         // Criar usuário no banco
         const user = await prisma.user.create({
-            data: { name, email, password: hashedPassword },
+            data: { name, email, password: hashedPassword , dono},
         });
 
         res.status(201).json({ message: "Usuário criado com sucesso", user });

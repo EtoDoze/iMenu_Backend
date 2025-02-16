@@ -18,6 +18,7 @@ model User {
   name String @unique
   email String @unique
   password String 
+  dono Boolean @default(false)
   creatAt  DateTime @default(now())
   updateAt DateTime @updatedAt
 }
