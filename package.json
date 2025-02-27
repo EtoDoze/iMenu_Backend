@@ -1,6 +1,5 @@
 {
-"type": "module", 
-"type": "commonjs",  
+"type": "module",  
   "dependencies": {
 
     "@prisma/client": "^6.3.1",

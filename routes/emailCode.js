@@ -3,7 +3,7 @@ import { PrismaClient } from "@prisma/client";
 import bcrypt from 'bcryptjs';
 const prisma = new PrismaClient();
 const SECRET_KEY = process.env.SECRET_KEY;*/
-const emailnode = require("nodemailer");
+import emailnode from "nodemailer";
 
 const transporter = emailnode.createTransport({
     service: "gmail",
@@ -30,4 +30,4 @@ async function VerEmail(email, senha) {
     }
   }
   
- module.exports = VerEmail;
+ export default VerEmail;
