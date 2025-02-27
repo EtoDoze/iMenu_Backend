@@ -32,4 +32,4 @@ async function VerEmail(email, senha) {
   
   
   // Chamando a função
-  module.exports = VerEmail;
+  export default VerEmail;
