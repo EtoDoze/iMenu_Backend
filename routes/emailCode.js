@@ -20,7 +20,7 @@ async function VerEmail(email, senha) {
         to: email, // Destinatário
         subject: "Seu codigo de verificação", // Assunto
         text: "Veja o codigo para verificar sua conta", // Corpo do e-mail em texto
-        html: "<h1>a mensagem é:</h1><p>vai tomar no seu cu</p>", // Corpo do e-mail em HTML
+        html: `<h1>Seu codigo:</h1><p>${senha}</p>`, // Corpo do e-mail em HTML
       });
       
       sendEmail();
