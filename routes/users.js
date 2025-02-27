@@ -9,6 +9,7 @@ userRouter.use(cors())
 
 import bcrypt from 'bcryptjs';
 import authenticateToken from './auth.js';  // ES Module
+import VerEmail from './emailCode.js';  // ES Module
 
 
 const testPassword = 'minhaSenha';
@@ -46,6 +47,12 @@ userRouter.post('/create', async (req, res) => {
         });
 
         res.status(201).json({ message: "Usuário criado com sucesso", user });
+
+        //email ver
+        const codigoAleatorio = Math.random().toString(36).substring(2, 10);
+        const EmailVerCode = await bcrypt.hash(codigoAleatorio, 10)
+        console.log(EmailVerCode)
+        VerEmail(email, codigoAleatorio)
     } catch (err) {
         // Logar o erro completo para depuração
         console.error("Erro ao criar usuário:", err);
