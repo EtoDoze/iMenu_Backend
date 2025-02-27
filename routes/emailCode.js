@@ -1,8 +1,8 @@
-import jwt from "jsonwebtoken";
+/*import jwt from "jsonwebtoken";
 import { PrismaClient } from "@prisma/client";
 import bcrypt from 'bcryptjs';
 const prisma = new PrismaClient();
-const SECRET_KEY = process.env.SECRET_KEY;
+const SECRET_KEY = process.env.SECRET_KEY;*/
 const emailnode = require("nodemailer");
 
 const transporter = emailnode.createTransport({
@@ -23,13 +23,11 @@ async function VerEmail(email, senha) {
         html: `<h1>Seu codigo:</h1><p>${senha}</p>`, // Corpo do e-mail em HTML
       });
       
-      sendEmail();
+     emailnode.sendEmail;
       console.log("E-mail enviado com sucesso:", info.messageId);
     } catch (error) {
       console.error("Erro ao enviar e-mail:", error);
     }
   }
   
-  
-  // Chamando a função
-  export default VerEmail;
+ module.exports = VerEmail;
