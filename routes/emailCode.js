@@ -1,33 +1,31 @@
-/*import jwt from "jsonwebtoken";
-import { PrismaClient } from "@prisma/client";
-import bcrypt from 'bcryptjs';
-const prisma = new PrismaClient();
-const SECRET_KEY = process.env.SECRET_KEY;*/
-import emailnode from "nodemailer";
+import { VerEmail, VerEmailDigitado } from "../API/emailVer.js";
 
-const transporter = emailnode.createTransport({
-    service: "gmail",
-    auth:{
-        user: "imenucompany12@gmail.com", // Seu e-mail
-        pass: "jrpr mzsa pnyh nrff", // Sua senha ou senha de app (recomendado)
-      },
+import Express, { Router } from 'express';
+import { PrismaClient } from "@prisma/client"
+import cors from "cors";
+
+const EmailRoter = Router()
+const prisma = new PrismaClient()
+EmailRoter.use(cors())
+
+EmailRoter.post("emailsen", async (req,res) =>{
+  const {email} = req.body;
+  VerEmail(email)
 })
 
-async function VerEmail(email, senha) {
-    try {
-      const info = await transporter.sendMail({
-        from: '"iMenu" <imenucompany12@gmail.com>', // Remetente
-        to: email, // Destinatário
-        subject: "Seu codigo de verificação", // Assunto
-        text: "Veja o codigo para verificar sua conta", // Corpo do e-mail em texto
-        html: `<h1>Seu codigo:</h1><p>${senha}</p>`, // Corpo do e-mail em HTML
-      });
-      
-     emailnode.sendEmail;
-      console.log("E-mail enviado com sucesso:", info.messageId);
-    } catch (error) {
-      console.error("Erro ao enviar e-mail:", error);
+EmailRoter.post("emailver", async (req,res) =>{
+  try{
+    const {email, codeemaildigited} = req.body;
+    VerEmailDigitado(email, codeemaildigited)
+    if(VerEmailDigitado){
+      usuario = await prisma.user.update({
+        where:{code: codeemaildigited},
+        data:{email:email}
+      })
     }
+
   }
-  
- export default VerEmail;
+  catch{}
+})
+
+export default EmailRoter

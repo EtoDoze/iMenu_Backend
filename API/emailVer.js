@@ -1,4 +1,9 @@
-const emailnode = require("nodemailer");
+import jwt from "jsonwebtoken";
+import { PrismaClient } from "@prisma/client";
+import bcrypt from 'bcryptjs';
+const prisma = new PrismaClient();
+const SECRET_KEY = process.env.SECRET_KEY;
+import emailnode from "nodemailer";
 
 const transporter = emailnode.createTransport({
     service: "gmail",
@@ -8,23 +13,46 @@ const transporter = emailnode.createTransport({
       },
 })
 
+const userdata = {}
+
 async function VerEmail(email) {
-    try {
+  const codigoAleatorio = Math.random().toString(36).substring(2, 10);
+  const EmailVerCode = await bcrypt.hash(codigoAleatorio, 10)
+  userData.email = email;
+  try {
+      const sencode = await prisma.user.update({
+        where:{
+          email: email
+        },
+        data:{code: EmailVerCode}
+      })
+
       const info = await transporter.sendMail({
         from: '"iMenu" <imenucompany12@gmail.com>', // Remetente
         to: email, // Destinatário
-        subject: "mensagem pra voce", // Assunto
-        text: "Este é um teste de e-mail enviado pelo Nodemailer!", // Corpo do e-mail em texto
-        html: "<h1>a mensagem é:</h1><p>vai tomar no seu cu</p>", // Corpo do e-mail em HTML
+        subject: "Seu codigo de verificação", // Assunto
+        text: "Veja o codigo para verificar sua conta", // Corpo do e-mail em texto
+        html: `<h1>Olá ${sencode.name}, Aqui está seu codigo:</h1><p>${codigoAleatorio}</p>`, // Corpo do e-mail em HTML
       });
       
-      sendEmail();
+     emailnode.sendEmail;
       console.log("E-mail enviado com sucesso:", info.messageId);
+
+      
     } catch (error) {
       console.error("Erro ao enviar e-mail:", error);
     }
   }
+
+  async function VerEmailDigitado(email,emaildigited) {
+    const emailuser = await prisma.user.findUnique({
+      where:{ email: email}
+    })
+
+   const emailcode = emailuser.code
+  const codigomandado = await bcrypt.compare(emailcode, emaildigited)
   
-  
-  // Chamando a função
-  module.exports = VerEmail;
+  if(codigomandado){return true}
+  else{return false}
+}
+export { VerEmail, VerEmailDigitado };

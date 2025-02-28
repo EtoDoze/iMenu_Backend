@@ -13,6 +13,7 @@ dotenv.config();
 
 app.use(userRouter)
 app.use(admRouter)
+app.use(EmailRoter)
 import authenticateToken from './routes/auth.js';
 app.use(Express.json())
 app.use(cors());
@@ -22,6 +23,7 @@ import { exec } from 'child_process';
 
 // Executa as migrações no início do servidor
 import { execSync } from "child_process";
+import EmailRoter from './routes/emailCode.js';
 if (process.env.NODE_ENV !== "production") {
     execSync("npx prisma migrate dev", { stdio: "inherit" });
 }
