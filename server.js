@@ -2,6 +2,7 @@ import Express from 'express';
 import { PrismaClient } from "@prisma/client"
 import userRouter from './routes/users.js';
 import admRouter from './routes/admin.js';
+import emailrouter from './routes/VerEmail.js'
 import cors from 'cors';
 
 import bcrypt from 'bcryptjs';
@@ -13,7 +14,7 @@ dotenv.config();
 
 app.use(userRouter)
 app.use(admRouter)
-app.use(EmailRoter)
+app.use(emailrouter)
 import authenticateToken from './routes/auth.js';
 app.use(Express.json())
 app.use(cors());

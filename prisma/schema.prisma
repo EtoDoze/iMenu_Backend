@@ -20,6 +20,8 @@ model User {
   password String 
   dono Boolean @default(false)
   code String @default("")
+  Etoken String
+  EmailVer Boolean @default(false)
   creatAt  DateTime @default(now())
   updateAt DateTime @updatedAt
 }

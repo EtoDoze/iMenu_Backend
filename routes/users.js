@@ -9,8 +9,7 @@ userRouter.use(cors())
 
 import bcrypt from 'bcryptjs';
 import authenticateToken from './auth.js';  // ES Module
-import VerEmail from './emailCode.js';  // ES Module
-
+import sendVerificationEmail from "../API/email.js"
 
 const testPassword = 'minhaSenha';
 import jwt from 'jsonwebtoken';
@@ -40,19 +39,15 @@ userRouter.post('/create', async (req, res) => {
 
         // Criar a senha hash
         const hashedPassword = await bcrypt.hash(password, 10);
-
+        const Etoken = crypto.randomBytes(32).toString("hex");
         // Criar usuário no banco
         const user = await prisma.user.create({
-            data: { name, email, password: hashedPassword , dono},
+            data: { name, email, password: hashedPassword , dono, EToken: Etoken},
         });
 
         res.status(201).json({ message: "Usuário criado com sucesso", user });
-
+        sendVerificationEmail(user.email, Etoken)
         //email ver
-        const codigoAleatorio = Math.random().toString(36).substring(2, 10);
-        const EmailVerCode = await bcrypt.hash(codigoAleatorio, 10)
-        console.log(EmailVerCode)
-        VerEmail(email, codigoAleatorio)
     } catch (err) {
         // Logar o erro completo para depuração
         console.error("Erro ao criar usuário:", err);
