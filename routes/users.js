@@ -7,6 +7,7 @@ userRouter.use(Express.json())
 const prisma = new PrismaClient()
 userRouter.use(cors())
 
+import crypto from 'crypto';
 import bcrypt from 'bcryptjs';
 import authenticateToken from './auth.js';  // ES Module
 import sendVerificationEmail from "../API/email.js"
