@@ -9,7 +9,7 @@ const transporter = nodemailer.createTransport({
 });
 
 export const sendVerificationEmail = async (email, token) => {
-  const verificationLink = `https://imenu-backend-qfa2.onrender.com/verify-email?token=${token}`;
+  const verificationLink = `https://imenu-backend-pd3a.onrender.com/verify-email?token=${token}`;
   console.log("Link de verificação:", verificationLink); // Log para depuração
 
   const mailOptions = {
