@@ -102,12 +102,33 @@ userRouter.post('/login', async (req, res) => {
 
   userRouter.get('/dados', authenticateToken, async (req, res) => {
     try {
-        console.log("Usuário do request:", req.user); // Verifique o conteúdo de req.user
-        const user = req.user;
-        res.status(200).json({ name: user.name, dono: user.dono });
+        const userEmail = req.user.email; // Pegando o e-mail do token JWT
+
+        const finduser = await prisma.user.findUnique({
+            where: { email: userEmail }
+        });
+
+        if (!finduser) {
+            return res.status(404).json({ error: "Usuário não encontrado!" });
+        }
+
+        // ✅ Corrigindo a verificação do email verificado
+        if (finduser.EmailVer === false) {
+            return res.status(403).json({ error: "Email não verificado!" });
+        }
+
+        return res.status(200).json({ 
+            name: finduser.name, 
+            email: finduser.email, 
+            dono: finduser.dono 
+        });
+
     } catch (err) {
-        res.status(500).json({ message: "Erro ao buscar usuário", error: err.message });
+        console.error("Erro ao buscar usuário:", err);
+        return res.status(500).json({ error: "Erro interno do servidor" });
     }
 });
+
+
 
 export default userRouter

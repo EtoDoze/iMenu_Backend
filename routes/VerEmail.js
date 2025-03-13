@@ -60,4 +60,5 @@ emailrouter.get("/verify-email", async (req, res) => {
     
   })
 
+  
   export default emailrouter
