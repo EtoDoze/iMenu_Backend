@@ -57,4 +57,27 @@ postRoot.post("/post", async (req, res) => {
     }
 });
 
+postRoot.get("/recent", async (req, res) => {
+    try {
+        const latestPosts = await prisma.card.findMany({
+            take: 3,
+            orderBy: {
+                id: 'desc'
+            },
+            include: {
+                author: {
+                    select: {
+                        name: true,
+                        email: true
+                    }
+                }
+            }
+        });
+        res.status(200).json(latestPosts);
+    } catch (err) {
+        console.error("Erro ao buscar posts:", err);
+        res.status(500).json({ error: "Erro interno do servidor." });
+    }
+});
+
 export default postRoot;
