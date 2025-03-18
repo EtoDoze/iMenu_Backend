@@ -24,4 +24,15 @@ model User {
   EmailVer Boolean @default(false)
   creatAt  DateTime @default(now())
   updateAt DateTime @updatedAt
+  cards       Card[]
+}
+
+model Card{
+  id Int @id @default(autoincrement())
+  title String
+  content String?
+  public Boolean @default(false)
+  sociallink String?
+  author    User    @relation(fields: [authorId], references: [id])
+  authorId  Int
 }

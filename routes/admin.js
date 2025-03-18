@@ -10,6 +10,11 @@ admRouter.get('/users',async (req,res) => {
     res.json(users)
 })
 
+admRouter.get('/posts',async (req,res) => {
+    const posts = await prisma.card.findMany({});
+      res.json(posts)
+  })
+
 admRouter.delete('/delete', async (req,res) => {
 try{
   const {name, email} = req.body

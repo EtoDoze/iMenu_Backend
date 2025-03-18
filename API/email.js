@@ -9,7 +9,8 @@ const transporter = nodemailer.createTransport({
 });
 
 export const sendVerificationEmail = async (email, token) => {
-  const verificationLink = `https://imenu-backend-yp5c.onrender.com/verify-email?token=${token}`;
+  const webservice = "http://localhost:3006"//"https://imenu-backend-yp5c.onrender.com"
+  const verificationLink = `${webservice}/verify-email?token=${token}`;
   console.log("Link de verificação:", verificationLink); // Log para depuração
 
   const mailOptions = {
