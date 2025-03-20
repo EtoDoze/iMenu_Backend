@@ -35,4 +35,5 @@ model Card{
   sociallink String?
   author    User    @relation(fields: [authorId], references: [id])
   authorId  Int
+  capa String?
 }

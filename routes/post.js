@@ -28,7 +28,7 @@ postRoot.post("/post", async (req, res) => {
             return res.status(401).json({ error: "Token inválido ou expirado." });
         }
 
-        const { sociallink, title, content, publice } = req.body;
+        const { sociallink, title, content, publice, capa } = req.body;
 
         // Verificar se o usuário existe
         const user = await prisma.user.findUnique({
@@ -47,6 +47,7 @@ postRoot.post("/post", async (req, res) => {
                 public: publice,
                 sociallink: sociallink,
                 authorId: userId, // Relaciona o post ao usuário
+                capa: capa
             },
         });
 
