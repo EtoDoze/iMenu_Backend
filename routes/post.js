@@ -62,22 +62,57 @@ postRoot.get("/recent", async (req, res) => {
     try {
         const latestPosts = await prisma.card.findMany({
             take: 3,
-            orderBy: {
-                id: 'desc'
-            },
+            orderBy: { id: 'desc' },
+            include: {
+                author: {
+                    select: { name: true, email: true }
+                }
+            }
+        });
+        
+        console.log("Posts no backend:", latestPosts); // Adicione este log
+        
+        // Garanta que os IDs estão sendo incluídos
+        const postsComIds = latestPosts.map(post => ({
+            id: post.id,  // Garanta que está usando 'id' ou '_id' consistentemente
+            ...post
+        }));
+        
+        res.status(200).json(postsComIds);
+    } catch (err) {
+        console.error("Erro ao buscar posts:", err);
+        res.status(500).json({ error: "Erro interno do servidor." });
+    }
+});
+
+// Rota para buscar um post específico
+postRoot.get('/posts/:id', async (req, res) => {
+    try {
+        // Verifica se o ID é válido
+        const postId = parseInt(req.params.id);
+        if (isNaN(postId)) {
+            return res.status(400).json({ error: 'ID inválido' });
+        }
+
+        const post = await prisma.card.findUnique({
+            where: { id: postId },
             include: {
                 author: {
                     select: {
-                        name: true,
-                        email: true
+                        name: true
                     }
                 }
             }
         });
-        res.status(200).json(latestPosts);
+
+        if (!post) {
+            return res.status(404).json({ error: 'Post não encontrado' });
+        }
+
+        res.json(post);
     } catch (err) {
-        console.error("Erro ao buscar posts:", err);
-        res.status(500).json({ error: "Erro interno do servidor." });
+        console.error('Erro ao buscar post:', err);
+        res.status(500).json({ error: 'Erro interno do servidor' });
     }
 });
 
