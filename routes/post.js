@@ -61,7 +61,7 @@ postRoot.post("/post", async (req, res) => {
 postRoot.get("/recent", async (req, res) => {
     try {
         const latestPosts = await prisma.card.findMany({
-            take: 3,
+            take: 20,
             orderBy: { id: 'desc' },
             include: {
                 author: {

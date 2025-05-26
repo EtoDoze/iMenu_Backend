@@ -6,6 +6,7 @@ import emailrouter from './routes/VerEmail.js';
 import postRoot from './routes/post.js';
 import avaRoot from './routes/avaliacoes.js';
 import cors from 'cors';
+import authenticateToken from './routes/auth.js';
 
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
@@ -19,7 +20,6 @@ app.use(admRouter)
 app.use(emailrouter)
 app.use(postRoot)
 app.use(avaRoot)
-import authenticateToken from './routes/auth.js';
 app.use(Express.json())
 app.use(cors());
 
