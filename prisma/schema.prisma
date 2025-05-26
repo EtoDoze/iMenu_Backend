@@ -36,4 +36,13 @@ model Card{
   author    User    @relation(fields: [authorId], references: [id])
   authorId  Int
   capa String?
+  avaliacao Avaliacao[]
+}
+
+model Avaliacao {
+  id        Int      @id @default(autoincrement())
+  post    Card @relation(fields: [postId], references: [id])
+  postId Int
+  nota      Int @default(1)     // Vai de 1 a 5 (as estrelas)
+  createdAt DateTime @default(now())
 }

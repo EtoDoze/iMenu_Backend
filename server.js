@@ -4,6 +4,7 @@ import userRouter from './routes/users.js';
 import admRouter from './routes/admin.js';
 import emailrouter from './routes/VerEmail.js';
 import postRoot from './routes/post.js';
+import avaRoot from './routes/avaliacoes.js';
 import cors from 'cors';
 
 import bcrypt from 'bcryptjs';
@@ -17,6 +18,7 @@ app.use(userRouter)
 app.use(admRouter)
 app.use(emailrouter)
 app.use(postRoot)
+app.use(avaRoot)
 import authenticateToken from './routes/auth.js';
 app.use(Express.json())
 app.use(cors());
