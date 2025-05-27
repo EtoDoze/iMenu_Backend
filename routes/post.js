@@ -13,7 +13,7 @@ function decodeToken(authHeader) {
         if (!token) return null;
 
         const decoded = jwt.verify(token, SECRET_KEY);
-        return decoded.userId; // Supondo que o token contenha o ID do usuário
+        return decoded.id || decoded.userId; // Supondo que o token contenha o ID do usuário
     } catch (err) {
         return null; // Token inválido
     }
