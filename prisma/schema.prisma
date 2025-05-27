@@ -25,6 +25,8 @@ model User {
   creatAt  DateTime @default(now())
   updateAt DateTime @updatedAt
   cards       Card[]
+    comentario Comment[]
+
 }
 
 model Card{
@@ -39,6 +41,7 @@ model Card{
   creatAt  DateTime @default(now())
   updateAt DateTime @updatedAt
   avaliacao Avaliacao[]
+  comentario Comment[]
 }
 
 model Avaliacao {
@@ -47,4 +50,15 @@ model Avaliacao {
   postId Int
   nota      Int @default(1)     // Vai de 1 a 5 (as estrelas)
   createdAt DateTime @default(now())
+}
+
+model Comment {
+  id        Int      @id @default(autoincrement())
+  content   String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  author    User     @relation(fields: [authorId], references: [id])
+  authorId  Int
+  post      Card     @relation(fields: [postId], references: [id])
+  postId    Int
 }

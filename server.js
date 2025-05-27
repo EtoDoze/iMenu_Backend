@@ -5,6 +5,7 @@ import admRouter from './routes/admin.js';
 import emailrouter from './routes/VerEmail.js';
 import postRoot from './routes/post.js';
 import avaRoot from './routes/avaliacoes.js';
+import commentRouter from './routes/commentsRouter.js';
 import cors from 'cors';
 import authenticateToken from './routes/auth.js';
 
@@ -16,6 +17,7 @@ import dotenv from 'dotenv';
 dotenv.config();
 
 app.use(userRouter)
+app.use(commentRouter)
 app.use(admRouter)
 app.use(emailrouter)
 app.use(postRoot)
