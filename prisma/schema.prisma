@@ -36,6 +36,8 @@ model Card{
   author    User    @relation(fields: [authorId], references: [id])
   authorId  Int
   capa String?
+  creatAt  DateTime @default(now())
+  updateAt DateTime @updatedAt
   avaliacao Avaliacao[]
 }
 

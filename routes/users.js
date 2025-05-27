@@ -80,7 +80,7 @@ userRouter.post('/login', async (req, res) => {
       }
   
       // Gerar o token JWT
-      const token = jwt.sign({ userId: finduser.id, email: finduser.email, name: finduser.name, dono: finduser.dono }, SECRET_KEY, {
+      const token = jwt.sign({ id: finduser.id, email: finduser.email, name: finduser.name, dono: finduser.dono }, SECRET_KEY, {
         expiresIn: '1h',
       });
   
@@ -103,7 +103,6 @@ userRouter.post('/login', async (req, res) => {
   userRouter.get('/dados', authenticateToken, async (req, res) => {
     try {
         const userEmail = req.user.email; // Pegando o e-mail do token JWT
-
         const finduser = await prisma.user.findUnique({
             where: { email: userEmail }
         });
@@ -130,5 +129,39 @@ userRouter.post('/login', async (req, res) => {
 });
 
 
+userRouter.get('/userposts', authenticateToken, async (req, res) => {
+    try {
+        const user_id = req.user.id
+        
+        if (isNaN(user_id)) {
+            return res.status(400).json({ error: 'ID de usuário inválido' });
+        }
+
+        const user_cards = await prisma.card.findMany({
+            where: { 
+                authorId: user_id
+            },
+
+        orderBy: {
+                  // Primeiro ordena pelos que têm data (mais recente primeiro)
+                    creatAt: 'desc'
+                }
+            
+        });
+
+        if (!user_cards) {
+            return res.status(404).json({ error: 'Nenhum post encontrado' });
+        }
+
+        res.status(200).json(user_cards);
+        console.log("cardápios achado: " +user_cards)
+    } catch (err) {
+        console.error('Erro ao buscar posts:', err);
+        res.status(500).json({ 
+            error: 'Erro interno do servidor',
+            details: err.message 
+        });
+    }
+});
 
 export default userRouter
