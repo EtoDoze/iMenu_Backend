@@ -139,7 +139,44 @@ userRouter.get('/userposts', authenticateToken, async (req, res) => {
 
         const user_cards = await prisma.card.findMany({
             where: { 
-                authorId: user_id
+                authorId: user_id,
+                public: true
+            },
+
+        orderBy: {
+                  // Primeiro ordena pelos que têm data (mais recente primeiro)
+                    creatAt: 'desc'
+                }
+            
+        });
+
+        if (!user_cards) {
+            return res.status(404).json({ error: 'Nenhum post encontrado' });
+        }
+
+        res.status(200).json(user_cards);
+        console.log("cardápios achado: " +user_cards)
+    } catch (err) {
+        console.error('Erro ao buscar posts:', err);
+        res.status(500).json({ 
+            error: 'Erro interno do servidor',
+            details: err.message 
+        });
+    }
+});
+
+userRouter.get('/userposts_p', authenticateToken, async (req, res) => {
+    try {
+        const user_id = req.user.id
+        
+        if (isNaN(user_id)) {
+            return res.status(400).json({ error: 'ID de usuário inválido' });
+        }
+
+        const user_cards = await prisma.card.findMany({
+            where: { 
+                authorId: user_id,
+                public: false
             },
 
         orderBy: {
