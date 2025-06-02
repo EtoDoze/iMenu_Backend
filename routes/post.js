@@ -65,7 +65,7 @@ postRoot.get("/recent", async (req, res) => {
             orderBy: { id: 'desc' },
             include: {
                 author: {
-                    select: { name: true, email: true }
+                    select: { name: true, email: true, public: true}
                 }
             }
         });
