@@ -122,10 +122,16 @@ postRoot.get('/posts/:id', async (req, res) => {
 postRoot.delete("/post/:id", async (req, res) => {
     try {
         const authHeader = req.headers['authorization'];
-        const userId = decodeToken(authHeader);
+        if (!authHeader) {
+            return res.status(401).json({ error: "Token não fornecido." });
+        }
+
+        const token = authHeader.split(' ')[1];
+        const decoded = jwt.verify(token, SECRET_KEY);
+        const userId = decoded.id;
 
         if (!userId) {
-            return res.status(401).json({ error: "Token inválido ou expirado." });
+            return res.status(401).json({ error: "Token inválido." });
         }
 
         const postId = parseInt(req.params.id);
@@ -133,10 +139,9 @@ postRoot.delete("/post/:id", async (req, res) => {
             return res.status(400).json({ error: "ID inválido." });
         }
 
-        // Verifica se o post pertence ao usuário
+        // Verifica se o post existe e pertence ao usuário
         const post = await prisma.card.findUnique({
-            where: { id: postId },
-            select: { authorId: true }
+            where: { id: postId }
         });
 
         if (!post) {
@@ -155,7 +160,13 @@ postRoot.delete("/post/:id", async (req, res) => {
         res.status(200).json({ success: true });
     } catch (err) {
         console.error("Erro ao excluir post:", err);
+        
+        if (err.name === 'JsonWebTokenError') {
+            return res.status(401).json({ error: "Token inválido." });
+        }
+        
         res.status(500).json({ error: "Erro interno do servidor." });
     }
 });
+
 export default postRoot;
