@@ -169,4 +169,53 @@ postRoot.delete("/post/:id", async (req, res) => {
     }
 });
 
+// Adicione esta rota ao seu postRoot.js
+postRoot.put('/posts/:id', async (req, res) => {
+    try {
+        const authHeader = req.headers['authorization'];
+        const userId = decodeToken(authHeader);
+
+        if (!userId) {
+            return res.status(401).json({ error: "Token inválido ou expirado." });
+        }
+
+        const postId = parseInt(req.params.id);
+        if (isNaN(postId)) {
+            return res.status(400).json({ error: 'ID inválido' });
+        }
+
+        const { sociallink, title, content, public: isPublic, capa } = req.body;
+
+        // Verificar se o post existe e pertence ao usuário
+        const existingPost = await prisma.card.findUnique({
+            where: { id: postId }
+        });
+
+        if (!existingPost) {
+            return res.status(404).json({ error: 'Post não encontrado' });
+        }
+
+        if (existingPost.authorId !== userId) {
+            return res.status(403).json({ error: 'Você não tem permissão para editar este post' });
+        }
+
+        // Atualizar o post
+        const updatedPost = await prisma.card.update({
+            where: { id: postId },
+            data: {
+                title: title || existingPost.title,
+                content: content || existingPost.content,
+                public: isPublic !== undefined ? isPublic : existingPost.public,
+                sociallink: sociallink || existingPost.sociallink,
+                capa: capa || existingPost.capa
+            }
+        });
+
+        res.status(200).json(updatedPost);
+    } catch (err) {
+        console.error('Erro ao atualizar post:', err);
+        res.status(500).json({ error: 'Erro interno do servidor' });
+    }
+});
+
 export default postRoot;
