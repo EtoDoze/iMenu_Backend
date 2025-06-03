@@ -119,4 +119,43 @@ postRoot.get('/posts/:id', async (req, res) => {
     }
 });
 
+postRoot.delete("/post/:id", async (req, res) => {
+    try {
+        const authHeader = req.headers['authorization'];
+        const userId = decodeToken(authHeader);
+
+        if (!userId) {
+            return res.status(401).json({ error: "Token inválido ou expirado." });
+        }
+
+        const postId = parseInt(req.params.id);
+        if (isNaN(postId)) {
+            return res.status(400).json({ error: "ID inválido." });
+        }
+
+        // Verifica se o post pertence ao usuário
+        const post = await prisma.card.findUnique({
+            where: { id: postId },
+            select: { authorId: true }
+        });
+
+        if (!post) {
+            return res.status(404).json({ error: "Post não encontrado." });
+        }
+
+        if (post.authorId !== userId) {
+            return res.status(403).json({ error: "Você não tem permissão para excluir este post." });
+        }
+
+        // Exclui o post
+        await prisma.card.delete({
+            where: { id: postId }
+        });
+
+        res.status(200).json({ success: true });
+    } catch (err) {
+        console.error("Erro ao excluir post:", err);
+        res.status(500).json({ error: "Erro interno do servidor." });
+    }
+});
 export default postRoot;
