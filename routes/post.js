@@ -155,6 +155,9 @@ postRoot.delete("/post/:id", async (req, res) => {
         await prisma.avaliacao.deleteMany({
             where: { postId: postId}
         });
+        await prisma.comment.deleteMany({
+            where: { postId: postId}
+        });
 
         // Depois exclui o post
         await prisma.card.delete({
