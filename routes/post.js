@@ -150,13 +150,16 @@ postRoot.delete("/post/:id", async (req, res) => {
 
         if (post.authorId !== userId) {
             return res.status(403).json({ error: "Você não tem permissão para excluir este post." });
-        }
+        }        
+        // Primeiro exclui todas as avaliações relacionadas
+        await prisma.avaliacao.deleteMany({
+            where: { postId: postId}
+        });
 
-        // Exclui o post
+        // Depois exclui o post
         await prisma.card.delete({
             where: { id: postId }
         });
-
         res.status(200).json({ success: true });
     } catch (err) {
         console.error("Erro ao excluir post:", err);
