@@ -58,6 +58,97 @@ userRouter.post('/create', async (req, res) => {
     }
 });
 
+// Obter dados de um usuário específico
+userRouter.get('/user/:userId', authenticateToken, async (req, res) => {
+    try {
+        const userId = parseInt(req.params.userId);
+        if (isNaN(userId)) {
+            return res.status(400).json({ error: 'ID de usuário inválido' });
+        }
+
+        const user = await prisma.user.findUnique({
+            where: { id: userId },
+            select: {
+                id: true,
+                name: true,
+                dono: true,
+                location: true,
+                EmailVer: true
+            }
+        });
+
+        if (!user) {
+            return res.status(404).json({ error: 'Usuário não encontrado' });
+        }
+
+        // Verificar se o email está verificado
+        if (!user.EmailVer) {
+            return res.status(403).json({ error: 'Email não verificado' });
+        }
+
+        res.status(200).json(user);
+    } catch (err) {
+        console.error('Erro ao buscar usuário:', err);
+        res.status(500).json({ error: 'Erro interno do servidor' });
+    }
+});
+
+// Obter posts públicos de um usuário
+userRouter.get('/user/:userId/posts', authenticateToken, async (req, res) => {
+    try {
+        const userId = parseInt(req.params.userId);
+        if (isNaN(userId)) {
+            return res.status(400).json({ error: 'ID de usuário inválido' });
+        }
+
+        const posts = await prisma.card.findMany({
+            where: { 
+                authorId: userId,
+                public: true
+            },
+            orderBy: {
+                creatAt: 'desc'
+            }
+        });
+
+        res.status(200).json(posts);
+    } catch (err) {
+        console.error('Erro ao buscar posts:', err);
+        res.status(500).json({ error: 'Erro interno do servidor' });
+    }
+});
+
+// Obter posts privados de um usuário (somente para o próprio usuário)
+userRouter.get('/user/:userId/posts/private', authenticateToken, async (req, res) => {
+    try {
+        const userId = parseInt(req.params.userId);
+        const requestingUserId = req.user.id;
+
+        if (isNaN(userId)) {
+            return res.status(400).json({ error: 'ID de usuário inválido' });
+        }
+
+        // Verificar se o usuário está tentando acessar seus próprios posts
+        if (userId !== requestingUserId) {
+            return res.status(403).json({ error: 'Acesso não autorizado' });
+        }
+
+        const posts = await prisma.card.findMany({
+            where: { 
+                authorId: userId,
+                public: false
+            },
+            orderBy: {
+                creatAt: 'desc'
+            }
+        });
+
+        res.status(200).json(posts);
+    } catch (err) {
+        console.error('Erro ao buscar posts:', err);
+        res.status(500).json({ error: 'Erro interno do servidor' });
+    }
+});
 
 userRouter.post('/login', async (req, res) => {
     try {
