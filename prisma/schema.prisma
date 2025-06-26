@@ -42,6 +42,7 @@ model Card{
   updateAt DateTime @updatedAt
   avaliacao Avaliacao[]
   comentario Comment[]
+  views     Int?     @default(0)
 }
 
 model Avaliacao {

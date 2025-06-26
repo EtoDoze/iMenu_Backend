@@ -224,4 +224,64 @@ postRoot.put('/posts/:id', async (req, res) => {
     }
 });
 
+
+//views
+
+
+// Adicione estas rotas ao seu postRoot.js
+
+// Rota para registrar uma visualização
+postRoot.post('/posts/:id/view', async (req, res) => {
+    try {
+        const postId = parseInt(req.params.id);
+        if (isNaN(postId)) {
+            return res.status(400).json({ error: 'ID inválido' });
+        }
+
+        // Atualiza o contador de visualizações
+        const updatedPost = await prisma.card.update({
+            where: { id: postId },
+            data: {
+                views: {
+                    increment: 1
+                }
+            },
+            select: {
+                views: true
+            }
+        });
+
+        res.status(200).json({ views: updatedPost.views });
+    } catch (err) {
+        console.error('Erro ao registrar visualização:', err);
+        res.status(500).json({ error: 'Erro interno do servidor' });
+    }
+});
+
+// Rota para obter visualizações
+postRoot.get('/posts/:id/views', async (req, res) => {
+    try {
+        const postId = parseInt(req.params.id);
+        if (isNaN(postId)) {
+            return res.status(400).json({ error: 'ID inválido' });
+        }
+
+        const post = await prisma.card.findUnique({
+            where: { id: postId },
+            select: {
+                views: true
+            }
+        });
+
+        if (!post) {
+            return res.status(404).json({ error: 'Post não encontrado' });
+        }
+
+        res.status(200).json({ views: post.views || 0 });
+    } catch (err) {
+        console.error('Erro ao obter visualizações:', err);
+        res.status(500).json({ error: 'Erro interno do servidor' });
+    }
+});
+
 export default postRoot;
