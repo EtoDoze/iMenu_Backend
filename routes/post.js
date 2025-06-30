@@ -287,10 +287,8 @@ postRoot.get('/posts/:id/views', async (req, res) => {
 
 //rota para o relatorio:
 
-// Rota para gerar relatório de visualizações (apenas admin)
 postRoot.get('/relatorio/views', async (req, res) => {
     try {
-        // Verificar se o usuário é admin
         const authHeader = req.headers['authorization'];
         if (!authHeader) {
             return res.status(401).json({ error: "Token não fornecido." });
@@ -298,15 +296,16 @@ postRoot.get('/relatorio/views', async (req, res) => {
 
         const token = authHeader.split(' ')[1];
         const decoded = jwt.verify(token, SECRET_KEY);
-        
-        if (!decoded.dono == false) {
-            return res.status(403).json({ error: "Acesso negado. Somente administradores." });
+        const userId = decoded.id;
+
+        if (!userId) {
+            return res.status(401).json({ error: "Token inválido." });
         }
 
-        // Buscar todos os posts com suas visualizações
+        // Buscar apenas os posts do usuário logado
         const posts = await prisma.card.findMany({
-            where:{
-                email: decoded.email
+            where: {
+                authorId: userId
             },
             select: {
                 id: true,
@@ -324,5 +323,4 @@ postRoot.get('/relatorio/views', async (req, res) => {
         res.status(500).json({ error: 'Erro interno do servidor' });
     }
 });
-
 export default postRoot;
