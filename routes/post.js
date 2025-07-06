@@ -28,9 +28,8 @@ postRoot.post("/post", async (req, res) => {
             return res.status(401).json({ error: "Token inválido ou expirado." });
         }
 
-        const { sociallink, title, content, publice, capa } = req.body;
+        const { sociallink, title, content, publice, capa, arquivo } = req.body;
 
-        // Verificar se o usuário existe
         const user = await prisma.user.findUnique({
             where: { id: userId },
         });
@@ -39,15 +38,15 @@ postRoot.post("/post", async (req, res) => {
             return res.status(404).json({ error: "Usuário não encontrado." });
         }
 
-        // Criar o post relacionado ao usuário
         const post = await prisma.card.create({
             data: {
                 title: title,
                 content: content,
                 public: publice,
                 sociallink: sociallink,
-                authorId: userId, // Relaciona o post ao usuário
-                capa: capa
+                authorId: userId,
+                capa: capa,
+                arquivo: arquivo  // Novo campo
             },
         });
 
@@ -190,8 +189,7 @@ postRoot.put('/posts/:id', async (req, res) => {
             return res.status(400).json({ error: 'ID inválido' });
         }
 
-        const { sociallink, title, content, public: isPublic, capa } = req.body;
-
+        const { sociallink, title, content, public: isPublic, capa, arquivo } = req.body;
         // Verificar se o post existe e pertence ao usuário
         const existingPost = await prisma.card.findUnique({
             where: { id: postId }
@@ -205,7 +203,6 @@ postRoot.put('/posts/:id', async (req, res) => {
             return res.status(403).json({ error: 'Você não tem permissão para editar este post' });
         }
 
-        // Atualizar o post
         const updatedPost = await prisma.card.update({
             where: { id: postId },
             data: {
@@ -213,7 +210,8 @@ postRoot.put('/posts/:id', async (req, res) => {
                 content: content || existingPost.content,
                 public: isPublic !== undefined ? isPublic : existingPost.public,
                 sociallink: sociallink || existingPost.sociallink,
-                capa: capa || existingPost.capa
+                capa: capa || existingPost.capa,
+                arquivo: arquivo || existingPost.arquivo  // Novo campo
             }
         });
 

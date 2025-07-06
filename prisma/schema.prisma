@@ -29,7 +29,7 @@ model User {
 
 }
 
-model Card{
+model Card {
   id Int @id @default(autoincrement())
   title String
   content String?
@@ -37,7 +37,8 @@ model Card{
   sociallink String?
   author    User    @relation(fields: [authorId], references: [id])
   authorId  Int
-  capa String?
+  capa String?      // URL da imagem de capa
+  arquivo String?   // URL do arquivo anexado (novo campo)
   creatAt  DateTime @default(now())
   updateAt DateTime @updatedAt
   avaliacao Avaliacao[]
