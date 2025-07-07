@@ -28,7 +28,12 @@ postRoot.post("/post", async (req, res) => {
             return res.status(401).json({ error: "Token inválido ou expirado." });
         }
 
+        // Extrai os dados garantindo que capa e arquivo sejam strings
         const { sociallink, title, content, publice, capa, arquivo } = req.body;
+
+        // Validação dos campos de arquivo
+        const validatedCapa = typeof capa === 'object' ? capa.fileUrl || null : capa;
+        const validatedArquivo = typeof arquivo === 'object' ? arquivo.fileUrl || null : arquivo;
 
         const user = await prisma.user.findUnique({
             where: { id: userId },
@@ -45,15 +50,18 @@ postRoot.post("/post", async (req, res) => {
                 public: publice,
                 sociallink: sociallink,
                 authorId: userId,
-                capa: capa,
-                arquivo: arquivo  // Novo campo
+                capa: validatedCapa, // Garantindo que é string ou null
+                arquivo: validatedArquivo // Garantindo que é string ou null
             },
         });
 
         res.status(201).json(post);
     } catch (err) {
         console.error("Erro ao criar post:", err);
-        res.status(500).json({ error: "Erro interno do servidor." });
+        res.status(500).json({ 
+            error: "Erro interno do servidor",
+            details: err.message 
+        });
     }
 });
 
