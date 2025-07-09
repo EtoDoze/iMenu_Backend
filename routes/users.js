@@ -59,7 +59,6 @@ userRouter.post('/create', async (req, res) => {
 });
 
 // Obter dados de um usuário específico
-// Obter dados de um usuário específico
 userRouter.get('/user/:userId', authenticateToken, async (req, res) => {
     try {
         const userId = parseInt(req.params.userId);
