@@ -59,6 +59,7 @@ userRouter.post('/create', async (req, res) => {
 });
 
 // Obter dados de um usuário específico
+// Obter dados de um usuário específico
 userRouter.get('/user/:userId', authenticateToken, async (req, res) => {
     try {
         const userId = parseInt(req.params.userId);
@@ -72,8 +73,8 @@ userRouter.get('/user/:userId', authenticateToken, async (req, res) => {
                 id: true,
                 name: true,
                 dono: true,
-                location: true,
                 EmailVer: true
+                // Removido o campo location que não existe
             }
         });
 
