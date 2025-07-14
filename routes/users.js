@@ -292,4 +292,30 @@ userRouter.get('/userposts_p', authenticateToken, async (req, res) => {
     }
 });
 
+
+// Rota para atualizar a foto do usuário
+userRouter.post('/user/photo', authenticateToken, async (req, res) => {
+  try {
+    const { foto } = req.body;
+    const userEmail = req.user.email;
+
+    if (!foto) {
+      return res.status(400).json({ error: "URL da foto não fornecida" });
+    }
+
+    const updatedUser = await prisma.user.update({
+      where: { email: userEmail },
+      data: { foto }
+    });
+
+    res.status(200).json({ 
+      message: "Foto atualizada com sucesso",
+      foto: updatedUser.foto
+    });
+  } catch (err) {
+    console.error("Erro ao atualizar foto:", err);
+    res.status(500).json({ error: "Erro interno do servidor" });
+  }
+});
+
 export default userRouter
