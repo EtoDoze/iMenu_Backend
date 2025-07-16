@@ -25,7 +25,8 @@ model User {
   creatAt  DateTime @default(now())
   updateAt DateTime @updatedAt
   cards       Card[]
-    comentario Comment[]
+  comentario Comment[]
+  foto      String?
 
 }
 
