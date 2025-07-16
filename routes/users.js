@@ -210,7 +210,8 @@ userRouter.post('/login', async (req, res) => {
         return res.status(200).json({ 
             name: finduser.name, 
             email: finduser.email, 
-            dono: finduser.dono 
+            dono: finduser.dono,
+            foto: finduser.foto
         });
 
     } catch (err) {
