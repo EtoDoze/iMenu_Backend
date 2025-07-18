@@ -29,7 +29,7 @@ app.use(cors({
     'http://127.0.0.1:5503',
     'https://ifpi-picos.github.io',
     'https://www.imenucorp.shop',
-    'https://imenucorp.shop',
+    'https://imenucorp.shop'
   ],
   methods: ['GET', 'POST', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
