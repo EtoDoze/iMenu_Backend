@@ -23,13 +23,15 @@ app.use(emailrouter)
 app.use(postRoot)
 app.use(avaRoot)
 app.use(Express.json())
+// No arquivo do backend de arquivos
 app.use(cors({
   origin: [
     'http://127.0.0.1:5503',
     'https://ifpi-picos.github.io',
-    'https://www.imenucorp.shop'  // <-- Adicione aqui
+    'https://www.imenucorp.shop',
+    'https://imenucorp.shop' // Adicione também sem www
   ],
-  methods: ['GET', 'POST', 'OPTIONS', 'DELETE'],
+  methods: ['GET', 'POST', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
   credentials: true
 }));
