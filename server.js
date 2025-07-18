@@ -23,7 +23,17 @@ app.use(emailrouter)
 app.use(postRoot)
 app.use(avaRoot)
 app.use(Express.json())
-app.use(cors());
+app.use(cors({
+  origin: [
+    'http://127.0.0.1:5503',
+    'https://ifpi-picos.github.io',
+    'https://www.imenucorp.shop'  // <-- Adicione aqui
+  ],
+  methods: ['GET', 'POST', 'OPTIONS', 'DELETE'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  credentials: true
+}));
+
 
 import { exec } from 'child_process';
 
