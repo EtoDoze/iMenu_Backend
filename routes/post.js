@@ -9,7 +9,9 @@ const SECRET_KEY = process.env.SECRET_KEY;
 import multer from 'multer';
 
 // Configure o multer para processar multipart/form-data
-const upload = multer();
+const storage = multer.memoryStorage();
+const upload = multer({ storage });
+
 
 function decodeToken(authHeader) {
     try {
@@ -24,7 +26,10 @@ function decodeToken(authHeader) {
 }
 
 postRoot.post("/post", 
-  upload.none(), // Processa campos não-file do FormData
+  upload.fields([
+    { name: 'capa', maxCount: 1 },
+    { name: 'arquivo', maxCount: 1 }
+  ]),
   async (req, res) => {
     try {
         const authHeader = req.headers['authorization'];
@@ -50,6 +55,18 @@ postRoot.post("/post",
             return res.status(404).json({ error: "Usuário não encontrado." });
         }
 
+        // Processar uploads de arquivos
+        let capaUrl = null;
+        let arquivoUrl = null;
+
+        if (req.files['capa']) {
+            capaUrl = await uploadToCloudinary(req.files['capa'][0]);
+        }
+
+        if (req.files['arquivo']) {
+            arquivoUrl = await uploadToCloudinary(req.files['arquivo'][0]);
+        }
+
         const post = await prisma.card.create({
             data: {
                 title,
@@ -57,8 +74,8 @@ postRoot.post("/post",
                 public: publice === 'true', // Converte string para boolean
                 sociallink: sociallink || null,
                 authorId: userId,
-                capa: null, // Será atualizado depois
-                arquivo: null // Será atualizado depois
+                capa: capaUrl,
+                arquivo: arquivoUrl
             },
         });
 
@@ -72,28 +89,13 @@ postRoot.post("/post",
     }
 });
 
-// Adicione esta rota para upload de arquivos
-postRoot.post("/post/upload", 
-  upload.fields([
-    { name: 'capa', maxCount: 1 },
-    { name: 'arquivo', maxCount: 1 }
-  ]),
-  async (req, res) => {
-    try {
-        // Processar uploads e retornar URLs
-        const capaUrl = req.files['capa'] ? await uploadToCloudinary(req.files['capa'][0]) : null;
-        const arquivoUrl = req.files['arquivo'] ? await uploadToCloudinary(req.files['arquivo'][0]) : null;
-        
-        res.json({ capaUrl, arquivoUrl });
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
-});
-
 async function uploadToCloudinary(file) {
     return new Promise((resolve, reject) => {
         const stream = cloudinary.uploader.upload_stream(
-            { resource_type: file.mimetype.startsWith('image') ? 'image' : 'raw' },
+            { 
+                resource_type: file.mimetype.startsWith('image') ? 'image' : 'raw',
+                folder: "cardapios"
+            },
             (error, result) => {
                 if (error) reject(error);
                 else resolve(result.secure_url);
