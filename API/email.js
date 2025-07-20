@@ -14,6 +14,10 @@ export async function sendVerificationEmail(email, token) {
     rejectUnauthorized: false
   }
     });
+
+
+
+    
     
 const webservice = "https://imenu-backend-pd3a.onrender.com"
 

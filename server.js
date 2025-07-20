@@ -5,6 +5,7 @@ import admRouter from './routes/admin.js';
 import emailrouter from './routes/VerEmail.js';
 import postRoot from './routes/post.js';
 import avaRoot from './routes/avaliacoes.js';
+import locrouter from './routes/location.js';
 import commentRouter from './routes/commentsRouter.js';
 import cors from 'cors';
 import authenticateToken from './routes/auth.js';
@@ -22,6 +23,8 @@ app.use(admRouter)
 app.use(emailrouter)
 app.use(postRoot)
 app.use(avaRoot)
+app.use(locrouter)
+
 app.use(Express.json())
 // No arquivo do backend de arquivos
 app.use(cors({
