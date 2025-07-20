@@ -60,5 +60,27 @@ emailrouter.get("/verify-email", async (req, res) => {
     
   })
 
+  emailrouter.post('/reenviar-verificacao', async (req, res) => {
+    try {
+        const { email } = req.body;
+        const user = await prisma.user.findUnique({ where: { email } });
+
+        if (!user) {
+            return res.status(404).json({ message: "Usuário não encontrado" });
+        }
+
+        if (user.EmailVer) {
+            return res.status(400).json({ message: "E-mail já verificado" });
+        }
+
+        // Reenviar e-mail
+        await sendVerificationEmail(user.email, user.EToken);
+        
+        res.status(200).json({ message: "E-mail de verificação reenviado com sucesso" });
+    } catch (err) {
+        res.status(500).json({ message: "Erro ao reenviar e-mail", error: err.message });
+    }
+});
+
   
   export default emailrouter
