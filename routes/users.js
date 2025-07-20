@@ -33,6 +33,13 @@ userRouter.post('/create', async (req, res) => {
     try {
         const { name, email, password, dono } = req.body;
 
+            if (!name || !email || !password) {
+      return res.status(400).json({ 
+        error: "Todos os campos são obrigatórios",
+        details: { name, email, password }
+      });
+    }
+
         // Verificar se o e-mail já existe
         const existingUser = await prisma.user.findUnique({ where: { email } });
         if (existingUser) {
@@ -89,7 +96,8 @@ userRouter.get('/user/:userId', authenticateToken, async (req, res) => {
                 id: true,
                 name: true,
                 dono: true,
-                EmailVer: true
+                EmailVer: true,
+                foto: true
                 // Removido o campo location que não existe
             }
         });

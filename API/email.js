@@ -9,8 +9,12 @@ export async function sendVerificationEmail(email, token) {
         auth: {
             user: process.env.EMAIL_USER,
             pass: process.env.EMAIL_PASS
-        }
+        },
+          tls: {
+    rejectUnauthorized: false
+  }
     });
+    
 const webservice = "https://imenu-backend-pd3a.onrender.com"
 
     const verificationUrl = `${webservice}/verify-email?token=${token}`;
