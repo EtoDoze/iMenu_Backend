@@ -83,6 +83,71 @@ userRouter.post('/create', async (req, res) => {
     }
 });
 
+
+// Rota para excluir usuário (admin)
+userRouter.delete('/users/:id', authenticateToken, async (req, res) => {
+    try {
+        // Verifica se é admin
+        if (req.user.email !== "imenucompany12@gmail.com") {
+            return res.status(403).json({ error: "Acesso negado" });
+        }
+
+        const userId = parseInt(req.params.id);
+        if (isNaN(userId)) {
+            return res.status(400).json({ error: "ID inválido" });
+        }
+
+        // Primeiro exclui todos os posts do usuário
+        const posts = await prisma.card.findMany({
+            where: { authorId: userId },
+            select: { id: true }
+        });
+
+        for (const post of posts) {
+            await prisma.avaliacao.deleteMany({ where: { postId: post.id } });
+            await prisma.comment.deleteMany({ where: { postId: post.id } });
+            await prisma.card.delete({ where: { id: post.id } });
+        }
+
+        // Depois exclui o usuário
+        await prisma.user.delete({ where: { id: userId } });
+
+        res.status(200).json({ success: true });
+    } catch (err) {
+        console.error("Erro ao excluir usuário:", err);
+        res.status(500).json({ error: "Erro interno do servidor" });
+    }
+});
+
+// Rota para pegar todos os usuários (admin)
+userRouter.get('/users/all', authenticateToken, async (req, res) => {
+    try {
+        // Verifica se é admin
+        if (req.user.email !== "imenucompany12@gmail.com") {
+            return res.status(403).json({ error: "Acesso negado" });
+        }
+
+        const users = await prisma.user.findMany({
+            select: {
+                id: true,
+                name: true,
+                email: true,
+                dono: true,
+                EmailVer: true,
+                creatAt: true
+            },
+            orderBy: {
+                creatAt: 'desc'
+            }
+        });
+
+        res.status(200).json(users);
+    } catch (err) {
+        console.error("Erro ao buscar usuários:", err);
+        res.status(500).json({ error: "Erro interno do servidor" });
+    }
+});
+
 // Obter dados de um usuário específico
 userRouter.get('/user/:userId', authenticateToken, async (req, res) => {
     try {

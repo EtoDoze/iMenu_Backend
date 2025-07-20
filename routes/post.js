@@ -31,6 +31,61 @@ function decodeToken(authHeader) {
     }
 }
 
+// Rota para excluir post (admin)
+postRoot.delete('/posts/:id', authenticateToken, async (req, res) => {
+    try {
+        // Verifica se é admin
+        if (req.user.email !== "imenucompany12@gmail.com") {
+            return res.status(403).json({ error: "Acesso negado" });
+        }
+
+        const postId = parseInt(req.params.id);
+        if (isNaN(postId)) {
+            return res.status(400).json({ error: "ID inválido" });
+        }
+
+        // Exclui o post e todos os relacionamentos
+        await prisma.avaliacao.deleteMany({ where: { postId } });
+        await prisma.comment.deleteMany({ where: { postId } });
+        await prisma.card.delete({ where: { id: postId } });
+
+        res.status(200).json({ success: true });
+    } catch (err) {
+        console.error("Erro ao excluir post:", err);
+        res.status(500).json({ error: "Erro interno do servidor" });
+    }
+});
+
+// Rota para pegar todos os posts (admin)
+postRoot.get('/posts/all', authenticateToken, async (req, res) => {
+    try {
+        // Verifica se é admin
+        if (req.user.email !== "imenucompany12@gmail.com") {
+            return res.status(403).json({ error: "Acesso negado" });
+        }
+
+        const posts = await prisma.card.findMany({
+            include: {
+                author: {
+                    select: {
+                        name: true,
+                        email: true
+                    }
+                }
+            },
+            orderBy: {
+                creatAt: 'desc'
+            }
+        });
+
+        res.status(200).json(posts);
+    } catch (err) {
+        console.error("Erro ao buscar posts:", err);
+        res.status(500).json({ error: "Erro interno do servidor" });
+    }
+});
+
+
 postRoot.post("/post", 
   upload.fields([
     { name: 'capa', maxCount: 1 },
