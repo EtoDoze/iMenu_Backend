@@ -1,7 +1,7 @@
 import Express, { Router } from 'express';
 import { PrismaClient } from "@prisma/client";
 import jwt from 'jsonwebtoken';
-import cloudinary from ('cloudinary').v2
+import { v2 as cloudinary } from 'cloudinary'; // Linha corrigida
 const postRoot = Router();
 postRoot.use(Express.json());
 const prisma = new PrismaClient();
