@@ -1,9 +1,6 @@
 import Express, { Router } from 'express';
 import { PrismaClient } from "@prisma/client";
 import jwt from 'jsonwebtoken';
-import multer from 'multer';
-const upload = multer({ storage: multer.memoryStorage() });
-
 const postRoot = Router();
 postRoot.use(Express.json());
 const prisma = new PrismaClient();
@@ -21,12 +18,7 @@ function decodeToken(authHeader) {
     }
 }
 
-postRoot.post("/post", 
-  upload.fields([
-    { name: 'capa', maxCount: 1 },
-    { name: 'arquivo', maxCount: 1 }
-  ]), 
-  async (req, res) => {
+postRoot.post("/post", async (req, res) => {
     try {
         const authHeader = req.headers['authorization'];
         const userId = decodeToken(authHeader);
@@ -35,24 +27,12 @@ postRoot.post("/post",
             return res.status(401).json({ error: "Token inválido ou expirado." });
         }
 
-        // Processar uploads primeiro
-        let capaUrl = null;
-        let arquivoUrl = null;
+        // Extrai os dados garantindo que capa e arquivo sejam strings
+        const { sociallink, title, content, publice, capa, arquivo } = req.body;
 
-        if (req.files['capa']) {
-            const capaFile = req.files['capa'][0];
-            const capaResult = await uploadToCloudinary(capaFile.buffer, capaFile.mimetype);
-            capaUrl = capaResult.secure_url;
-        }
-
-        if (req.files['arquivo']) {
-            const arquivoFile = req.files['arquivo'][0];
-            const arquivoResult = await uploadToCloudinary(arquivoFile.buffer, arquivoFile.mimetype);
-            arquivoUrl = arquivoResult.secure_url;
-        }
-
-        // Extrair outros dados do corpo
-        const { sociallink, title, content, publice } = req.body;
+        // Validação dos campos de arquivo
+        const validatedCapa = typeof capa === 'object' ? capa.fileUrl || null : capa;
+        const validatedArquivo = typeof arquivo === 'object' ? arquivo.fileUrl || null : arquivo;
 
         const user = await prisma.user.findUnique({
             where: { id: userId },
@@ -64,13 +44,13 @@ postRoot.post("/post",
 
         const post = await prisma.card.create({
             data: {
-                title,
-                content,
+                title: title,
+                content: content,
                 public: publice,
-                sociallink,
+                sociallink: sociallink,
                 authorId: userId,
-                capa: capaUrl,
-                arquivo: arquivoUrl
+                capa: validatedCapa, // Garantindo que é string ou null
+                arquivo: validatedArquivo // Garantindo que é string ou null
             },
         });
 
@@ -83,26 +63,6 @@ postRoot.post("/post",
         });
     }
 });
-
-async function uploadToCloudinary(buffer, mimeType) {
-    return new Promise((resolve, reject) => {
-        const uploadStream = cloudinary.uploader.upload_stream(
-            {
-                resource_type: mimeType.startsWith('image') ? 'image' : 'raw',
-                folder: "cardapios"
-            },
-            (error, result) => {
-                if (error) reject(error);
-                else resolve(result);
-            }
-        );
-
-        const readableStream = new Readable();
-        readableStream.push(buffer);
-        readableStream.push(null);
-        readableStream.pipe(uploadStream);
-    });
-}
 
 postRoot.get("/recent", async (req, res) => {
     try {
