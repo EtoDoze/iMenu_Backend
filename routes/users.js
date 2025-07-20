@@ -31,7 +31,7 @@ bcrypt.hash(testPassword, 10, function(err, hash) {
 
 userRouter.post('/create', async (req, res) => {
     try {
-        const { name, email, password, dono } = req.body;
+        const { name, email, password, dono, foto } = req.body;
 
             if (!name || !email || !password) {
       return res.status(400).json({ 
@@ -56,7 +56,8 @@ userRouter.post('/create', async (req, res) => {
                 password: hashedPassword, 
                 dono, 
                 EToken: Etoken,
-                EmailVer: false // Garantir que comece como não verificado
+                EmailVer: false, // Garantir que comece como não verificado
+                foto: foto || 'images/perfil.png'
             },
         });
 
