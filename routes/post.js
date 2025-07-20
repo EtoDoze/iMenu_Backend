@@ -1,6 +1,7 @@
 import Express, { Router } from 'express';
 import { PrismaClient } from "@prisma/client";
 import jwt from 'jsonwebtoken';
+import cloudinary from ('cloudinary').v2
 const postRoot = Router();
 postRoot.use(Express.json());
 const prisma = new PrismaClient();
@@ -12,6 +13,11 @@ import multer from 'multer';
 const storage = multer.memoryStorage();
 const upload = multer({ storage });
 
+cloudinary.config({ 
+  cloud_name: process.env.CLOUDINARY_NAME, 
+  api_key: process.env.CLOUDINARY_KEY, 
+  api_secret: process.env.CLOUDINARY_SECRET 
+});
 
 function decodeToken(authHeader) {
     try {
