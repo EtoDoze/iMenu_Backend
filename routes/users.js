@@ -31,30 +31,47 @@ bcrypt.hash(testPassword, 10, function(err, hash) {
 
 userRouter.post('/create', async (req, res) => {
     try {
-        const { name, email, password, dono} = req.body;
+        const { name, email, password, dono } = req.body;
 
-        // Verificar se todos os campos necessários foram enviados
-        if (!name || !email || !password) {
-            return res.status(400).json({ message: "Todos os campos são obrigatórios!" });
+        // Verificar se o e-mail já existe
+        const existingUser = await prisma.user.findUnique({ where: { email } });
+        if (existingUser) {
+            return res.status(400).json({ message: "E-mail já está em uso" });
         }
 
-        // Criar a senha hash
         const hashedPassword = await bcrypt.hash(password, 10);
         const Etoken = crypto.randomBytes(32).toString("hex");
-        // Criar usuário no banco
+
         const user = await prisma.user.create({
-            data: { name, email, password: hashedPassword , dono, EToken: Etoken},
+            data: { 
+                name, 
+                email, 
+                password: hashedPassword, 
+                dono, 
+                EToken: Etoken,
+                EmailVer: false // Garantir que comece como não verificado
+            },
         });
 
-        res.status(201).json({ message: "Usuário criado com sucesso", user });
-        sendVerificationEmail(user.email, Etoken)
-        //email ver
-    } catch (err) {
-        // Logar o erro completo para depuração
-        console.error("Erro ao criar usuário:", err);
+        // Enviar e-mail de verificação
+        await sendVerificationEmail(email, Etoken);
 
-        // Responder com um erro genérico e a mensagem do erro
-        res.status(500).json({ message: "Erro ao criar usuário", error: err.message });
+        res.status(201).json({ 
+            message: "Usuário criado com sucesso. Por favor verifique seu e-mail.",
+            user: {
+                id: user.id,
+                name: user.name,
+                email: user.email
+                // Não retornar dados sensíveis
+            }
+        });
+
+    } catch (err) {
+        console.error("Erro ao criar usuário:", err);
+        res.status(500).json({ 
+            message: "Erro ao criar usuário", 
+            error: err.message 
+        });
     }
 });
 

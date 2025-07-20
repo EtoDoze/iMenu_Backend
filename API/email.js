@@ -1,32 +1,39 @@
-import nodemailer from "nodemailer";
+// API/email.js - Implementação básica usando Nodemailer
+import nodemailer from 'nodemailer';
+import dotenv from 'dotenv';
+dotenv.config();
 
-const transporter = nodemailer.createTransport({
-  service: "gmail",
-  auth: {
-    user: "imenucompany12@gmail.com", // Substitua pelo seu e-mail
-    pass: "lily ualf fplp exyc", // Substitua pela sua senha ou senha de app
-  },
-});
+export async function sendVerificationEmail(email, token) {
+    const transporter = nodemailer.createTransport({
+        service: 'Gmail', // Ou outro serviço
+        auth: {
+            user: process.env.EMAIL_USER,
+            pass: process.env.EMAIL_PASS
+        }
+    });
+const webservice = "https://imenu-backend-pd3a.onrender.com"
 
-export const sendVerificationEmail = async (email, token) => {
-  const webservice = "https://imenu-backend-pd3a.onrender.com" //"http://localhost:3006"
-  const verificationLink = `${webservice}/verify-email?token=${token}`;
-  console.log("Link de verificação:", verificationLink); // Log para depuração
+    const verificationUrl = `${webservice}/verify-email?token=${token}`;
+    
+    const mailOptions = {
+        from: '"iMenu" <no-reply@imenucorp.shop>',
+        to: email,
+        subject: 'Verifique seu e-mail',
+        html: `
+            <h2>Por favor, verifique seu e-mail</h2>
+            <p>Clique no link abaixo para verificar sua conta:</p>
+            <a href="${verificationUrl}">${verificationUrl}</a>
+            <p>Se você não solicitou isso, por favor ignore este e-mail.</p>
+        `
+    };
 
-  const mailOptions = {
-    from: '"Imenu" <imenucompany12@gmail.com>',
-    to: email,
-    subject: "Verifique seu e-mail",
-    text: "Seu codigo de verificação do site",
-    html: `<p>Clique no link para verificar seu e-mail: <a href="${verificationLink}">${verificationLink}</a></p>`,
-  };
-
-  try {
-    await transporter.sendMail(mailOptions);
-    console.log("E-mail enviado com sucesso para:", email);
-  } catch (error) {
-    console.error("Erro ao enviar e-mail:", error);
-  }
-};
+    try {
+        await transporter.sendMail(mailOptions);
+        console.log(`E-mail de verificação enviado para ${email}`);
+    } catch (error) {
+        console.error('Erro ao enviar e-mail:', error);
+        throw error;
+    }
+}
 
 export default sendVerificationEmail
