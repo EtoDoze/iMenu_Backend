@@ -6,6 +6,11 @@ postRoot.use(Express.json());
 const prisma = new PrismaClient();
 const SECRET_KEY = process.env.SECRET_KEY;
 
+import multer from 'multer';
+
+// Configure o multer para processar multipart/form-data
+const upload = multer();
+
 function decodeToken(authHeader) {
     try {
         const token = authHeader && authHeader.split(' ')[1]; // Extrai o token do cabeçalho
@@ -18,7 +23,9 @@ function decodeToken(authHeader) {
     }
 }
 
-postRoot.post("/post", async (req, res) => {
+postRoot.post("/post", 
+  upload.none(), // Processa campos não-file do FormData
+  async (req, res) => {
     try {
         const authHeader = req.headers['authorization'];
         const userId = decodeToken(authHeader);
@@ -27,12 +34,13 @@ postRoot.post("/post", async (req, res) => {
             return res.status(401).json({ error: "Token inválido ou expirado." });
         }
 
-        // Extrai os dados garantindo que capa e arquivo sejam strings
-        const { sociallink, title, content, publice, capa, arquivo } = req.body;
-
-        // Validação dos campos de arquivo
-        const validatedCapa = typeof capa === 'object' ? capa.fileUrl || null : capa;
-        const validatedArquivo = typeof arquivo === 'object' ? arquivo.fileUrl || null : arquivo;
+        // Extrai os dados do FormData
+        const { sociallink, title, content, publice } = req.body;
+        
+        // Validação básica
+        if (!title) {
+            return res.status(400).json({ error: "Título é obrigatório" });
+        }
 
         const user = await prisma.user.findUnique({
             where: { id: userId },
@@ -44,13 +52,13 @@ postRoot.post("/post", async (req, res) => {
 
         const post = await prisma.card.create({
             data: {
-                title: title,
-                content: content,
-                public: publice,
-                sociallink: sociallink,
+                title,
+                content: content || null,
+                public: publice === 'true', // Converte string para boolean
+                sociallink: sociallink || null,
                 authorId: userId,
-                capa: validatedCapa, // Garantindo que é string ou null
-                arquivo: validatedArquivo // Garantindo que é string ou null
+                capa: null, // Será atualizado depois
+                arquivo: null // Será atualizado depois
             },
         });
 
@@ -63,6 +71,38 @@ postRoot.post("/post", async (req, res) => {
         });
     }
 });
+
+// Adicione esta rota para upload de arquivos
+postRoot.post("/post/upload", 
+  upload.fields([
+    { name: 'capa', maxCount: 1 },
+    { name: 'arquivo', maxCount: 1 }
+  ]),
+  async (req, res) => {
+    try {
+        // Processar uploads e retornar URLs
+        const capaUrl = req.files['capa'] ? await uploadToCloudinary(req.files['capa'][0]) : null;
+        const arquivoUrl = req.files['arquivo'] ? await uploadToCloudinary(req.files['arquivo'][0]) : null;
+        
+        res.json({ capaUrl, arquivoUrl });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+async function uploadToCloudinary(file) {
+    return new Promise((resolve, reject) => {
+        const stream = cloudinary.uploader.upload_stream(
+            { resource_type: file.mimetype.startsWith('image') ? 'image' : 'raw' },
+            (error, result) => {
+                if (error) reject(error);
+                else resolve(result.secure_url);
+            }
+        );
+        
+        stream.end(file.buffer);
+    });
+}
 
 postRoot.get("/recent", async (req, res) => {
     try {
