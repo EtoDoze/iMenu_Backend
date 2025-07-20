@@ -3,6 +3,7 @@ import { PrismaClient } from "@prisma/client"
 import userRouter from './routes/users.js';
 import admRouter from './routes/admin.js';
 import emailrouter from './routes/VerEmail.js';
+import adminRouter from './routes/adm.js';
 import postRoot from './routes/post.js';
 import avaRoot from './routes/avaliacoes.js';
 import locrouter from './routes/location.js';
@@ -24,6 +25,7 @@ app.use(emailrouter)
 app.use(postRoot)
 app.use(avaRoot)
 app.use(locrouter)
+app.use(admRouter)
 
 app.use(Express.json())
 // No arquivo do backend de arquivos
