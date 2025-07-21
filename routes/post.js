@@ -32,6 +32,8 @@ function decodeToken(authHeader) {
     }
 }
 
+
+
 // Rota para excluir post (admin)
 postRoot.delete('/posts/:id', authenticateToken, async (req, res) => {
     try {
@@ -333,9 +335,38 @@ postRoot.put('/posts/:id', async (req, res) => {
     }
 });
 
+// Nova rota específica para admin alterar visibilidade
+postRoot.put('/admin/posts/:id/visibility', authenticateToken, async (req, res) => {
+    try {
+        // Verifica se é admin
+        if (req.user.email !== "imenucompany12@gmail.com") {
+            return res.status(403).json({ error: "Acesso negado" });
+        }
 
-//views
+        const postId = parseInt(req.params.id);
+        if (isNaN(postId)) {
+            return res.status(400).json({ error: "ID inválido" });
+        }
 
+        const { public: isPublic } = req.body;
+
+        if (typeof isPublic !== 'boolean') {
+            return res.status(400).json({ error: "O campo 'public' deve ser booleano" });
+        }
+
+        const updatedPost = await prisma.card.update({
+            where: { id: postId },
+            data: {
+                public: isPublic
+            }
+        });
+
+        res.status(200).json(updatedPost);
+    } catch (err) {
+        console.error('Erro ao alterar visibilidade do post:', err);
+        res.status(500).json({ error: 'Erro interno do servidor' });
+    }
+});
 
 // Adicione estas rotas ao seu postRoot.js
 
