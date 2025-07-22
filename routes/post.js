@@ -427,13 +427,12 @@ postRoot.get('/posts/:id/views', async (req, res) => {
 
 
 // Rota para obter restaurantes populares (mais visualizações e melhores avaliações)
-// Atualize a rota no backend (postRoot.js)
+// Rota para obter restaurantes populares (mais visualizações e melhores avaliações)
 postRoot.get('/restaurantes/populares', async (req, res) => {
     try {
         const popularRestaurants = await prisma.card.findMany({
             where: {
                 public: true,
-                capa: { not: null } // Só restaurantes com imagem
             },
             include: {
                 author: {
@@ -442,16 +441,16 @@ postRoot.get('/restaurantes/populares', async (req, res) => {
                         foto: true
                     }
                 },
-                avaliacao: { // Note que agora está no singular, conforme seu schema
+                avaliacao: { // Agora está no singular, conforme seu schema
                     select: {
                         nota: true
                     }
                 }
             },
             orderBy: {
-                views: 'desc' // Ordena por visualizações (mais populares primeiro)
+                views: 'desc'
             },
-            take: 10 // Limita a 10 resultados
+            take: 10
         });
 
         if (!popularRestaurants || popularRestaurants.length === 0) {
@@ -459,7 +458,7 @@ postRoot.get('/restaurantes/populares', async (req, res) => {
         }
 
         const restaurantsWithAvgRating = popularRestaurants.map(restaurant => {
-            const ratings = restaurant.avaliacao.map(a => a.nota);
+            const ratings = restaurant.avaliacao.map(a => a.nota); // Note o singular aqui
             const avgRating = ratings.length > 0 ? 
                 (ratings.reduce((a, b) => a + b, 0) / ratings.length) : 
                 null;
@@ -497,7 +496,6 @@ postRoot.get('/restaurantes/populares', async (req, res) => {
         });
     }
 });
-
 //rota para o relatorio:
 
 postRoot.get('/relatorio/views', async (req, res) => {
