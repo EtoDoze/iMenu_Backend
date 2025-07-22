@@ -426,9 +426,8 @@ postRoot.get('/posts/:id/views', async (req, res) => {
 
 
 
-// Rota para obter restaurantes populares (mais visualizações e melhores avaliações)
-// Rota para obter restaurantes populares (mais visualizações e melhores avaliações)
-postRoot.get('/restaurantes/populares', async (req, res) => {
+// Rota para obter cardapios populares (mais visualizações e melhores avaliações)
+postRoot.get('/card/populares', async (req, res) => {
     try {
         const popularRestaurants = await prisma.card.findMany({
             where: {
