@@ -83,8 +83,7 @@ userRouter.post('/create', async (req, res) => {
     }
 });
 
-// Rota para buscar restaurantes populares (usuários donos)
-// Rota para buscar restaurantes populares (usuários donos)
+// Rota para buscar restaurantes populares (usuários donos) - Versão corrigida
 userRouter.get('/restaurantes/populares', async (req, res) => {
     try {
         // 1. Busca todos os restaurantes (usuários donos verificados)
@@ -95,6 +94,9 @@ userRouter.get('/restaurantes/populares', async (req, res) => {
             },
             include: {
                 cards: {
+                    where: {
+                        public: true // FILTRO IMPORTANTE: Somente cardápios públicos
+                    },
                     select: {
                         views: true,
                         avaliacao: {
@@ -102,24 +104,24 @@ userRouter.get('/restaurantes/populares', async (req, res) => {
                                 nota: true
                             }
                         },
-                        creatAt: true // Para cardápios recentes
+                        creatAt: true
                     }
                 }
             }
         });
 
-        // 2. Calcula métricas de popularidade para cada restaurante
+        // 2. Calcula métricas de popularidade apenas com posts públicos
         const restaurantesComPopularidade = restaurantes.map(restaurante => {
             const agora = new Date();
             const umMesAtras = new Date();
             umMesAtras.setMonth(umMesAtras.getMonth() - 1);
 
-            // Filtra cardápios dos últimos 30 dias
+            // Filtra cardápios públicos dos últimos 30 dias
             const cardapiosRecentes = restaurante.cards.filter(card => 
                 new Date(card.creatAt) > umMesAtras
             );
 
-            // Cálculos de métricas
+            // Cálculos de métricas (apenas com dados públicos)
             const totalViews = restaurante.cards.reduce((sum, card) => sum + (card.views || 0), 0);
             const viewsRecentes = cardapiosRecentes.reduce((sum, card) => sum + (card.views || 0), 0);
             
@@ -129,12 +131,11 @@ userRouter.get('/restaurantes/populares', async (req, res) => {
             const avgRating = ratings.length > 0 ? 
                 (ratings.reduce((a, b) => a + b, 0) / ratings.length) : 0;
 
-            // Pontuação de popularidade (quanto maior, mais popular)
-            // Aqui você pode ajustar os pesos conforme sua preferência
+            // Pontuação de popularidade (apenas com dados públicos)
             const popularidadeScore = 
-                (totalViews * 0.4) +        // 40% peso para visualizações totais
-                (viewsRecentes * 0.5) +     // 50% peso para visualizações recentes
-                (avgRating * 10 * 0.1);     // 10% peso para avaliação (multiplicado por 10 para equilibrar escala)
+                (totalViews * 0.4) +        // Visualizações totais
+                (viewsRecentes * 0.5) +     // Visualizações recentes
+                (avgRating * 10 * 0.1);     // Avaliação média
 
             return {
                 ...restaurante,
@@ -152,7 +153,7 @@ userRouter.get('/restaurantes/populares', async (req, res) => {
         // 3. Ordena por pontuação de popularidade
         const restaurantesOrdenados = restaurantesComPopularidade.sort((a, b) => 
             b.metrics.popularidadeScore - a.metrics.popularidadeScore
-        ).slice(0, 10); // Pega os top 10
+        ).slice(0, 10); // Top 10
 
         // 4. Formata a resposta
         const resultado = restaurantesOrdenados.map(restaurante => ({
@@ -175,7 +176,6 @@ userRouter.get('/restaurantes/populares', async (req, res) => {
         });
     }
 });
-
 
 // Rota para excluir usuário (admin)
 userRouter.delete('/users/:id', authenticateToken, async (req, res) => {
