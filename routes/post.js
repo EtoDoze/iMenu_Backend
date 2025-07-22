@@ -425,6 +425,65 @@ postRoot.get('/posts/:id/views', async (req, res) => {
 });
 
 
+
+// Rota para obter restaurantes populares (mais visualizações e melhores avaliações)
+postRoot.get('/restaurantes/populares', async (req, res) => {
+    try {
+        const popularRestaurants = await prisma.card.findMany({
+            where: {
+                public: true
+            },
+            include: {
+                author: {
+                    select: {
+                        name: true,
+                        foto: true
+                    }
+                },
+                avaliacoes: {
+                    select: {
+                        nota: true
+                    }
+                }
+            },
+            orderBy: [
+                { views: 'desc' } // Ordena por visualizações (mais populares primeiro)
+            ],
+            take: 10 // Limita a 10 resultados
+        });
+
+        // Calcula a média de avaliações para cada restaurante
+        const restaurantsWithAvgRating = popularRestaurants.map(restaurant => {
+            const ratings = restaurant.avaliacoes.map(a => a.nota);
+            const avgRating = ratings.length > 0 ? 
+                (ratings.reduce((a, b) => a + b, 0) / ratings.length).toFixed(1) : 
+                null;
+
+            return {
+                id: restaurant.id,
+                title: restaurant.title,
+                capa: restaurant.capa,
+                views: restaurant.views,
+                avgRating,
+                author: restaurant.author
+            };
+        });
+
+        // Ordena por avaliação média (se quiser priorizar os melhor avaliados)
+        restaurantsWithAvgRating.sort((a, b) => {
+            if (a.avgRating === null) return 1;
+            if (b.avgRating === null) return -1;
+            return b.avgRating - a.avgRating;
+        });
+
+        res.status(200).json(restaurantsWithAvgRating.slice(0, 3)); // Retorna apenas os top 3
+    } catch (err) {
+        console.error('Erro ao buscar restaurantes populares:', err);
+        res.status(500).json({ error: 'Erro interno do servidor' });
+    }
+});
+
+
 //rota para o relatorio:
 
 postRoot.get('/relatorio/views', async (req, res) => {
