@@ -427,11 +427,13 @@ postRoot.get('/posts/:id/views', async (req, res) => {
 
 
 // Rota para obter restaurantes populares (mais visualizações e melhores avaliações)
+// Atualize a rota no backend (postRoot.js)
 postRoot.get('/restaurantes/populares', async (req, res) => {
     try {
         const popularRestaurants = await prisma.card.findMany({
             where: {
-                public: true
+                public: true,
+                capa: { not: null } // Só restaurantes com imagem
             },
             include: {
                 author: {
@@ -440,49 +442,61 @@ postRoot.get('/restaurantes/populares', async (req, res) => {
                         foto: true
                     }
                 },
-                avaliacoes: {
+                avaliacao: { // Note que agora está no singular, conforme seu schema
                     select: {
                         nota: true
                     }
                 }
             },
-            orderBy: [
-                { views: 'desc' } // Ordena por visualizações (mais populares primeiro)
-            ],
+            orderBy: {
+                views: 'desc' // Ordena por visualizações (mais populares primeiro)
+            },
             take: 10 // Limita a 10 resultados
         });
 
-        // Calcula a média de avaliações para cada restaurante
+        if (!popularRestaurants || popularRestaurants.length === 0) {
+            return res.status(200).json([]);
+        }
+
         const restaurantsWithAvgRating = popularRestaurants.map(restaurant => {
-            const ratings = restaurant.avaliacoes.map(a => a.nota);
+            const ratings = restaurant.avaliacao.map(a => a.nota);
             const avgRating = ratings.length > 0 ? 
-                (ratings.reduce((a, b) => a + b, 0) / ratings.length).toFixed(1) : 
+                (ratings.reduce((a, b) => a + b, 0) / ratings.length) : 
                 null;
+
+            // Verifica se a URL da capa é válida
+            let capaUrl = restaurant.capa;
+            if (capaUrl && !capaUrl.startsWith('http')) {
+                capaUrl = `https://res.cloudinary.com/${process.env.CLOUDINARY_NAME}/image/upload/${capaUrl}`;
+            }
 
             return {
                 id: restaurant.id,
                 title: restaurant.title,
-                capa: restaurant.capa,
-                views: restaurant.views,
-                avgRating,
+                capa: capaUrl,
+                views: restaurant.views || 0,
+                avgRating: avgRating ? avgRating.toFixed(1) : null,
                 author: restaurant.author
             };
         });
 
-        // Ordena por avaliação média (se quiser priorizar os melhor avaliados)
+        // Ordena por avaliação (se existir) ou por visualizações
         restaurantsWithAvgRating.sort((a, b) => {
-            if (a.avgRating === null) return 1;
-            if (b.avgRating === null) return -1;
-            return b.avgRating - a.avgRating;
+            if (a.avgRating && b.avgRating) {
+                return parseFloat(b.avgRating) - parseFloat(a.avgRating);
+            }
+            return (b.views || 0) - (a.views || 0);
         });
 
-        res.status(200).json(restaurantsWithAvgRating.slice(0, 3)); // Retorna apenas os top 3
+        res.status(200).json(restaurantsWithAvgRating.slice(0, 3));
     } catch (err) {
         console.error('Erro ao buscar restaurantes populares:', err);
-        res.status(500).json({ error: 'Erro interno do servidor' });
+        res.status(500).json({ 
+            error: 'Erro interno do servidor',
+            details: err.message 
+        });
     }
 });
-
 
 //rota para o relatorio:
 
