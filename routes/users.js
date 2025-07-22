@@ -84,61 +84,95 @@ userRouter.post('/create', async (req, res) => {
 });
 
 // Rota para buscar restaurantes populares (usuários donos)
+// Rota para buscar restaurantes populares (usuários donos)
 userRouter.get('/restaurantes/populares', async (req, res) => {
     try {
-        // Busca usuários que são donos de restaurante, ordenados por algum critério de popularidade
+        // 1. Busca todos os restaurantes (usuários donos verificados)
         const restaurantes = await prisma.user.findMany({
             where: {
                 dono: true,
-                EmailVer: true // Apenas contas verificadas
+                EmailVer: true
             },
-            select: {
-                id: true,
-                name: true,
-                foto: true,
-                cards: { // Assumindo que há uma relação com os cardápios
+            include: {
+                cards: {
                     select: {
                         views: true,
                         avaliacao: {
                             select: {
                                 nota: true
                             }
-                        }
+                        },
+                        creatAt: true // Para cardápios recentes
                     }
                 }
-            },
-            orderBy: {
-                // Ordena por algum critério, como número de cardápios ou visualizações totais
-                cards: {
-                    _count: 'desc'
-                }
-            },
-            take: 10 // Limita a 10 resultados
+            }
         });
 
-        // Calcula estatísticas para cada restaurante
-        const restaurantesComStats = restaurantes.map(restaurante => {
+        // 2. Calcula métricas de popularidade para cada restaurante
+        const restaurantesComPopularidade = restaurantes.map(restaurante => {
+            const agora = new Date();
+            const umMesAtras = new Date();
+            umMesAtras.setMonth(umMesAtras.getMonth() - 1);
+
+            // Filtra cardápios dos últimos 30 dias
+            const cardapiosRecentes = restaurante.cards.filter(card => 
+                new Date(card.creatAt) > umMesAtras
+            );
+
+            // Cálculos de métricas
             const totalViews = restaurante.cards.reduce((sum, card) => sum + (card.views || 0), 0);
+            const viewsRecentes = cardapiosRecentes.reduce((sum, card) => sum + (card.views || 0), 0);
+            
             const ratings = restaurante.cards.flatMap(card => 
                 card.avaliacao.map(av => av.nota)
             );
             const avgRating = ratings.length > 0 ? 
-                (ratings.reduce((a, b) => a + b, 0) / ratings.length) : 
-                null;
+                (ratings.reduce((a, b) => a + b, 0) / ratings.length) : 0;
+
+            // Pontuação de popularidade (quanto maior, mais popular)
+            // Aqui você pode ajustar os pesos conforme sua preferência
+            const popularidadeScore = 
+                (totalViews * 0.4) +        // 40% peso para visualizações totais
+                (viewsRecentes * 0.5) +     // 50% peso para visualizações recentes
+                (avgRating * 10 * 0.1);     // 10% peso para avaliação (multiplicado por 10 para equilibrar escala)
 
             return {
-                id: restaurante.id,
-                name: restaurante.name,
-                foto: restaurante.foto || 'https://img.freepik.com/vetores-premium/ilustracao-em-vetor-de-foto-de-perfil-minimalista_276184-161.jpg',
-                totalViews,
-                avgRating: avgRating ? avgRating.toFixed(1) : null
+                ...restaurante,
+                metrics: {
+                    totalViews,
+                    viewsRecentes,
+                    avgRating,
+                    totalCardapios: restaurante.cards.length,
+                    cardapiosRecentes: cardapiosRecentes.length,
+                    popularidadeScore
+                }
             };
         });
 
-        res.status(200).json(restaurantesComStats);
+        // 3. Ordena por pontuação de popularidade
+        const restaurantesOrdenados = restaurantesComPopularidade.sort((a, b) => 
+            b.metrics.popularidadeScore - a.metrics.popularidadeScore
+        ).slice(0, 10); // Pega os top 10
+
+        // 4. Formata a resposta
+        const resultado = restaurantesOrdenados.map(restaurante => ({
+            id: restaurante.id,
+            name: restaurante.name,
+            foto: restaurante.foto || 'https://img.freepik.com/vetores-premium/ilustracao-em-vetor-de-foto-de-perfil-minimalista_276184-161.jpg',
+            totalViews: restaurante.metrics.totalViews,
+            viewsRecentes: restaurante.metrics.viewsRecentes,
+            avgRating: restaurante.metrics.avgRating.toFixed(1),
+            totalCardapios: restaurante.metrics.totalCardapios,
+            cardapiosRecentes: restaurante.metrics.cardapiosRecentes
+        }));
+
+        res.status(200).json(resultado);
     } catch (err) {
         console.error('Erro ao buscar restaurantes populares:', err);
-        res.status(500).json({ error: 'Erro interno do servidor' });
+        res.status(500).json({ 
+            error: 'Erro interno do servidor',
+            details: err.message 
+        });
     }
 });
 
