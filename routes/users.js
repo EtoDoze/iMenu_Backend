@@ -83,6 +83,65 @@ userRouter.post('/create', async (req, res) => {
     }
 });
 
+// Rota para buscar restaurantes populares (usuários donos)
+userRouter.get('/restaurantes/populares', async (req, res) => {
+    try {
+        // Busca usuários que são donos de restaurante, ordenados por algum critério de popularidade
+        const restaurantes = await prisma.user.findMany({
+            where: {
+                dono: true,
+                EmailVer: true // Apenas contas verificadas
+            },
+            select: {
+                id: true,
+                name: true,
+                foto: true,
+                cards: { // Assumindo que há uma relação com os cardápios
+                    select: {
+                        views: true,
+                        avaliacao: {
+                            select: {
+                                nota: true
+                            }
+                        }
+                    }
+                }
+            },
+            orderBy: {
+                // Ordena por algum critério, como número de cardápios ou visualizações totais
+                cards: {
+                    _count: 'desc'
+                }
+            },
+            take: 10 // Limita a 10 resultados
+        });
+
+        // Calcula estatísticas para cada restaurante
+        const restaurantesComStats = restaurantes.map(restaurante => {
+            const totalViews = restaurante.cards.reduce((sum, card) => sum + (card.views || 0), 0);
+            const ratings = restaurante.cards.flatMap(card => 
+                card.avaliacao.map(av => av.nota)
+            );
+            const avgRating = ratings.length > 0 ? 
+                (ratings.reduce((a, b) => a + b, 0) / ratings.length) : 
+                null;
+
+            return {
+                id: restaurante.id,
+                name: restaurante.name,
+                foto: restaurante.foto || 'images/default-restaurant.jpg',
+                totalViews,
+                avgRating: avgRating ? avgRating.toFixed(1) : null
+            };
+        });
+
+        res.status(200).json(restaurantesComStats);
+    } catch (err) {
+        console.error('Erro ao buscar restaurantes populares:', err);
+        res.status(500).json({ error: 'Erro interno do servidor' });
+    }
+});
+
 
 // Rota para excluir usuário (admin)
 userRouter.delete('/users/:id', authenticateToken, async (req, res) => {
