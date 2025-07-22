@@ -129,7 +129,7 @@ userRouter.get('/restaurantes/populares', async (req, res) => {
             return {
                 id: restaurante.id,
                 name: restaurante.name,
-                foto: restaurante.foto || 'images/default-restaurant.jpg',
+                foto: restaurante.foto || 'https://img.freepik.com/vetores-premium/ilustracao-em-vetor-de-foto-de-perfil-minimalista_276184-161.jpg',
                 totalViews,
                 avgRating: avgRating ? avgRating.toFixed(1) : null
             };
