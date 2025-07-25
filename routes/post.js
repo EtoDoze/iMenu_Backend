@@ -468,6 +468,7 @@ postRoot.get('/card/populares', async (req, res) => {
                 public: true,
             },
             include: {
+                tags: true,
                 author: {
                     select: {
                         name: true,
@@ -483,7 +484,7 @@ postRoot.get('/card/populares', async (req, res) => {
             orderBy: {
                 views: 'desc'
             },
-            take: 10
+            take: 20
         });
 
         if (!popularRestaurants || popularRestaurants.length === 0) {
@@ -508,7 +509,8 @@ postRoot.get('/card/populares', async (req, res) => {
                 capa: capaUrl,
                 views: restaurant.views || 0,
                 avgRating: avgRating ? avgRating.toFixed(1) : null,
-                author: restaurant.author
+                author: restaurant.author,
+                tags: restaurant.tags
             };
         });
 
@@ -529,6 +531,37 @@ postRoot.get('/card/populares', async (req, res) => {
         });
     }
 });
+
+//procurar card por tags
+
+postRoot.get('/card/tag/:tagName', async (req, res) => {
+    try {
+        const tagName = req.params.tagName;
+        const cardapios = await prisma.card.findMany({
+            where: {
+                public: true,
+                tags: {
+                    some: {
+                        name: tagName
+                    }
+                }
+            },
+            include: {
+                author: { select: { name: true, foto: true } },
+                avaliacao: { select: { nota: true } },
+                tags: true
+            },
+            orderBy: { views: 'desc' }
+        });
+
+        res.status(200).json(cardapios);
+    } catch (err) {
+        console.error('Erro ao buscar cardápios por tag:', err);
+        res.status(500).json({ error: 'Erro interno do servidor' });
+    }
+});
+
+
 //rota para o relatorio:
 
 postRoot.get('/relatorio/views', async (req, res) => {
