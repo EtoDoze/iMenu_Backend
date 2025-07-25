@@ -104,8 +104,16 @@ postRoot.post("/post",
         }
 
         // Extrai os dados do FormData
-        const { sociallink, title, content, publice } = req.body;
+        const { sociallink, title, content, publice, tags} = req.body;
+        const tagNames = tags ? JSON.parse(tags) : [];
+
+                // Validação de tags
+        if (tagNames.length > 3) {
+            return res.status(400).json({ error: "Máximo de 3 tags permitidas" });
+        }
         
+        const tagsData = await processTags(tagNames);
+
         // Validação básica
         if (!title) {
             return res.status(400).json({ error: "Título é obrigatório" });
@@ -139,8 +147,12 @@ postRoot.post("/post",
                 sociallink: sociallink || null,
                 authorId: userId,
                 capa: capaUrl,
-                arquivo: arquivoUrl
+                arquivo: arquivoUrl,
+                tags: tagsData
             },
+            include: {
+                tags: true
+            }
         });
 
         res.status(201).json(post);
@@ -152,6 +164,9 @@ postRoot.post("/post",
         });
     }
 });
+
+
+
 
 async function uploadToCloudinary(file) {
     return new Promise((resolve, reject) => {
@@ -169,6 +184,25 @@ async function uploadToCloudinary(file) {
         stream.end(file.buffer);
     });
 }
+
+
+async function processTags(tagNames) {
+    if (!tagNames || tagNames.length === 0) return { connect: [] };
+    
+    const tags = await Promise.all(
+        tagNames.map(name => 
+            prisma.tag.upsert({
+                where: { name },
+                create: { name },
+                update: {}
+            })
+        )
+    );
+    
+    return { connect: tags.map(tag => ({ id: tag.id })) };
+}
+
+
 
 postRoot.get("/recent", async (req, res) => {
     try {

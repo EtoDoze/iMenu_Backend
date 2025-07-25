@@ -44,8 +44,15 @@ model Card {
   updateAt DateTime @updatedAt
   avaliacao Avaliacao[]
   comentario Comment[]
+  tags      Tag[]
   views     Int?     @default(0)
 }
+model Tag {
+  id     Int    @id @default(autoincrement())
+  name   String @unique
+  cards  Card[]
+}
+
 
 model Avaliacao {
   id        Int      @id @default(autoincrement())
