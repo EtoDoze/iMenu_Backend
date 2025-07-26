@@ -391,9 +391,12 @@ postRoot.put('/posts/:id', authenticateToken, async (req, res) => {
             return res.status(400).json({ error: 'ID inválido' });
         }
 
+        const { title, content, public: isPublic, sociallink, capa, tags } = req.body;
+
         // Verificar se o post existe e pertence ao usuário
         const existingPost = await prisma.card.findUnique({
-            where: { id: postId }
+            where: { id: postId },
+            include: { tags: true }
         });
 
         if (!existingPost) {
@@ -403,8 +406,6 @@ postRoot.put('/posts/:id', authenticateToken, async (req, res) => {
         if (existingPost.authorId !== req.user.id) {
             return res.status(403).json({ error: 'Você não tem permissão para editar este post' });
         }
-
-        const { title, content, public: isPublic, sociallink, capa, tags } = req.body;
 
         // Preparar os dados de atualização
         const updateData = {
@@ -417,19 +418,20 @@ postRoot.put('/posts/:id', authenticateToken, async (req, res) => {
 
         // Se tags foram fornecidas, atualizar as relações
         if (tags && Array.isArray(tags)) {
-            // Primeiro desconectar todas as tags atuais
-            await prisma.card.update({
-                where: { id: postId },
-                data: {
-                    tags: {
-                        set: []
-                    }
-                }
+            // Converter para números inteiros
+            const tagIds = tags.map(tag => parseInt(tag)).filter(tag => !isNaN(tag));
+            
+            // Verificar se todas as tags existem
+            const existingTags = await prisma.tag.findMany({
+                where: { id: { in: tagIds } }
             });
 
-            // Depois conectar as novas tags
+            if (existingTags.length !== tagIds.length) {
+                return res.status(400).json({ error: 'Uma ou mais tags não existem' });
+            }
+
             updateData.tags = {
-                connect: tags.map(tagId => ({ id: tagId }))
+                set: tagIds.map(id => ({ id }))
             };
         }
 
@@ -437,7 +439,12 @@ postRoot.put('/posts/:id', authenticateToken, async (req, res) => {
             where: { id: postId },
             data: updateData,
             include: {
-                tags: true
+                tags: true,
+                author: {
+                    select: {
+                        name: true
+                    }
+                }
             }
         });
 
@@ -446,7 +453,8 @@ postRoot.put('/posts/:id', authenticateToken, async (req, res) => {
         console.error('Erro ao atualizar post:', err);
         res.status(500).json({ 
             error: 'Erro interno do servidor',
-            details: err.message 
+            details: err.message,
+            stack: process.env.NODE_ENV === 'development' ? err.stack : undefined
         });
     }
 });
