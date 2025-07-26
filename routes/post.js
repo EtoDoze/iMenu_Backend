@@ -279,7 +279,6 @@ postRoot.get("/recent", async (req, res) => {
 // Rota para buscar um post específico
 postRoot.get('/posts/:id', async (req, res) => {
     try {
-        // Verifica se o ID é válido
         const postId = parseInt(req.params.id);
         if (isNaN(postId)) {
             return res.status(400).json({ error: 'ID inválido' });
@@ -291,8 +290,13 @@ postRoot.get('/posts/:id', async (req, res) => {
                 author: {
                     select: {
                         name: true
-                    },
-                    tags: true // Inclui as tags
+                    }
+                },
+                // Corrigido para incluir tags corretamente
+                tags: {
+                    select: {
+                        name: true
+                    }
                 }
             }
         });
