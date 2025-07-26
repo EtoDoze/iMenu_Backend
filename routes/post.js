@@ -276,6 +276,22 @@ postRoot.get("/recent", async (req, res) => {
     }
 });
 
+
+// No seu arquivo de rotas (post.js ou similar)
+postRoot.get('/tags', authenticateToken, async (req, res) => {
+    try {
+        const tags = await prisma.tag.findMany({
+            orderBy: {
+                name: 'asc'
+            }
+        });
+        res.status(200).json(tags);
+    } catch (err) {
+        console.error('Erro ao buscar tags:', err);
+        res.status(500).json({ error: 'Erro interno do servidor' });
+    }
+});
+
 // Rota para buscar um post específico
 postRoot.get('/posts/:id', async (req, res) => {
     try {
@@ -383,7 +399,7 @@ postRoot.put('/posts/:id', async (req, res) => {
             return res.status(400).json({ error: 'ID inválido' });
         }
 
-        const { sociallink, title, content, public: isPublic, capa, arquivo } = req.body;
+        const { sociallink, title, content, public: isPublic, capa, arquivo, tags } = req.body;
         // Verificar se o post existe e pertence ao usuário
         const existingPost = await prisma.card.findUnique({
             where: { id: postId }
@@ -405,8 +421,17 @@ postRoot.put('/posts/:id', async (req, res) => {
                 public: isPublic !== undefined ? isPublic : existingPost.public,
                 sociallink: sociallink || existingPost.sociallink,
                 capa: capa || existingPost.capa,
-                arquivo: arquivo || existingPost.arquivo  // Novo campo
+                arquivo: arquivo || existingPost.arquivo,  // Novo campo
+                tags: {
+                    set: [], // Remove todas as tags atuais
+                    connect: tags ? tags.map(id => ({ id })) : [] // Conecta as novas tags
+                }
+            },
+            include: {
+                tags: true
             }
+
+
         });
 
         res.status(200).json(updatedPost);
