@@ -562,8 +562,7 @@ postRoot.get('/card/populares', async (req, res) => {
                 author: {
                     select: {
                         name: true,
-                        foto: true,
-                        id: true
+                        foto: true
                     }
                 },
                 avaliacao: { // Agora está no singular, conforme seu schema
