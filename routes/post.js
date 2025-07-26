@@ -202,7 +202,48 @@ async function processTags(tagNames) {
     return { connect: tags.map(tag => ({ id: tag.id })) };
 }
 
+//posts recentes na tela de pesquisa
 
+postRoot.get("/recentP", async (req, res) => {
+    try {
+        const includeTags = req.query.include === 'tags';
+        
+        const latestPosts = await prisma.card.findMany({
+            take: 20,
+            orderBy: { id: 'desc' },
+            where: {
+                public: true
+            },
+            include: {
+                author: {
+                    select: { name: true, email: true }
+                },
+                tags: includeTags,
+                avaliacao: {
+                    select: { nota: true }
+                }
+            }
+        });
+        
+        // Calcular média de avaliações
+        const postsWithRatings = latestPosts.map(post => {
+            const ratings = post.avaliacao.map(a => a.nota);
+            const avgRating = ratings.length > 0 ? 
+                (ratings.reduce((a, b) => a + b, 0) / ratings.length).toFixed(1) : 
+                null;
+            
+            return {
+                ...post,
+                avgRating
+            };
+        });
+        
+        res.status(200).json(postsWithRatings);
+    } catch (err) {
+        console.error("Erro ao buscar posts:", err);
+        res.status(500).json({ error: "Erro interno do servidor." });
+    }
+});
 
 postRoot.get("/recent", async (req, res) => {
     try {
@@ -216,6 +257,7 @@ postRoot.get("/recent", async (req, res) => {
                 author: {
                     select: { name: true, email: true}
                 }
+                
             }
         });
         
@@ -249,7 +291,8 @@ postRoot.get('/posts/:id', async (req, res) => {
                 author: {
                     select: {
                         name: true
-                    }
+                    },
+                    tags: true // Inclui as tags
                 }
             }
         });
