@@ -90,19 +90,24 @@ userRouter.put('/user/update', authenticateToken, async (req, res) => {
         const { name, email, password } = req.body;
         const userEmail = req.user.email;
 
+        console.log('Recebendo solicitação de atualização:', { name, email, password: !!password });
+
         // Validações básicas
         if (!name || !email) {
+            console.log('Validação falhou: nome ou email faltando');
             return res.status(400).json({ error: "Nome e email são obrigatórios" });
         }
 
         // Verificar se o novo email já está em uso por outro usuário
         if (email !== userEmail) {
+            console.log('Verificando se email já existe:', email);
             const emailExists = await prisma.user.findUnique({ 
                 where: { email },
                 select: { id: true }
             });
             
             if (emailExists) {
+                console.log('Email já em uso:', email);
                 return res.status(400).json({ error: "Este email já está em uso" });
             }
         }
@@ -111,11 +116,15 @@ userRouter.put('/user/update', authenticateToken, async (req, res) => {
         
         // Atualizar senha apenas se for fornecida
         if (password) {
+            console.log('Atualizando senha...');
             if (password.length < 6) {
+                console.log('Senha muito curta');
                 return res.status(400).json({ error: "Senha deve ter pelo menos 6 caracteres" });
             }
             updateData.password = await bcrypt.hash(password, 10);
         }
+
+        console.log('Dados para atualização:', updateData);
 
         const updatedUser = await prisma.user.update({
             where: { email: userEmail },
@@ -129,14 +138,20 @@ userRouter.put('/user/update', authenticateToken, async (req, res) => {
             }
         });
 
+        console.log('Usuário atualizado com sucesso:', updatedUser);
+
         res.status(200).json({ 
             message: "Dados atualizados com sucesso",
             user: updatedUser
         });
 
     } catch (err) {
-        console.error("Erro ao atualizar usuário:", err);
-        res.status(500).json({ error: "Erro interno do servidor" });
+        console.error("Erro detalhado ao atualizar usuário:", err);
+        res.status(500).json({ 
+            error: "Erro interno do servidor",
+            details: err.message,
+            stack: process.env.NODE_ENV === 'development' ? err.stack : undefined
+        });
     }
 });
 
