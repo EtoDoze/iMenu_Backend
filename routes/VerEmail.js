@@ -171,8 +171,8 @@ async function sendVerificationEmail(email, token) {
 `;
 
   const transporter = nodemailer.createTransport({
-    host: "smtp.gmail.com",
-    port: 587,
+    host: process.env.EMAIL_HOST,
+    port: Number(process.env.EMAIL_PORT),
     secure: false,
     auth: {
       user: process.env.EMAIL_USER,
@@ -182,11 +182,11 @@ async function sendVerificationEmail(email, token) {
 
   try {
     await transporter.sendMail({
-  from: `"iMenu" <${process.env.EMAIL_USER}>`, // ✅ Remetente igual ao autenticado
-  to: email,
-  subject: "Verifique seu e-mail",
-  html: html,
-});
+      from: `"iMenu" <${process.env.EMAIL_USER}>`,
+      to: email,
+      subject: "Verifique seu e-mail",
+      html: html,
+    });
     console.log(`✅ E-mail enviado para ${email}`);
   } catch (err) {
     console.error("❌ Erro ao enviar e-mail:", err.message);
