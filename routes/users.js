@@ -94,38 +94,43 @@ userRouter.put('/user/update', authenticateToken, async (req, res) => {
 
         // Validações básicas
         if (!name || !email) {
-            console.log('Validação falhou: nome ou email faltando');
             return res.status(400).json({ error: "Nome e email são obrigatórios" });
         }
 
         // Verificar se o novo email já está em uso por outro usuário
         if (email !== userEmail) {
-            console.log('Verificando se email já existe:', email);
             const emailExists = await prisma.user.findUnique({ 
                 where: { email },
                 select: { id: true }
             });
             
             if (emailExists) {
-                console.log('Email já em uso:', email);
                 return res.status(400).json({ error: "Este email já está em uso" });
             }
         }
 
-        const updateData = { name, email };
+        const updateData = { 
+            name, 
+            email,
+            updateAt: new Date() // Adiciona timestamp de atualização
+        };
         
-        // Atualizar senha apenas se for fornecida
-        if (password) {
+        // Atualizar senha apenas se for fornecida e não estiver vazia
+        if (password && password.trim() !== '') {
             console.log('Atualizando senha...');
             if (password.length < 6) {
-                console.log('Senha muito curta');
                 return res.status(400).json({ error: "Senha deve ter pelo menos 6 caracteres" });
             }
-            updateData.password = await bcrypt.hash(password, 10);
+            
+            // Gerar novo hash da senha
+            const saltRounds = 10;
+            updateData.password = await bcrypt.hash(password, saltRounds);
+            console.log('Novo hash de senha gerado');
         }
 
         console.log('Dados para atualização:', updateData);
 
+        // Atualizar usuário no banco de dados
         const updatedUser = await prisma.user.update({
             where: { email: userEmail },
             data: updateData,
@@ -134,23 +139,40 @@ userRouter.put('/user/update', authenticateToken, async (req, res) => {
                 name: true,
                 email: true,
                 foto: true,
-                dono: true
+                dono: true,
+                updateAt: true
             }
         });
 
         console.log('Usuário atualizado com sucesso:', updatedUser);
 
+        // Gerar novo token JWT se o email foi alterado
+        let newToken = null;
+        if (email !== userEmail) {
+            newToken = jwt.sign(
+                { 
+                    id: updatedUser.id, 
+                    email: updatedUser.email, 
+                    name: updatedUser.name, 
+                    dono: updatedUser.dono 
+                }, 
+                SECRET_KEY, 
+                { expiresIn: '24h' }
+            );
+            console.log('Novo token gerado devido à mudança de email');
+        }
+
         res.status(200).json({ 
             message: "Dados atualizados com sucesso",
-            user: updatedUser
+            user: updatedUser,
+            token: newToken // Inclui novo token se email foi alterado
         });
 
     } catch (err) {
         console.error("Erro detalhado ao atualizar usuário:", err);
         res.status(500).json({ 
             error: "Erro interno do servidor",
-            details: err.message,
-            stack: process.env.NODE_ENV === 'development' ? err.stack : undefined
+            details: process.env.NODE_ENV === 'development' ? err.message : undefined
         });
     }
 });
