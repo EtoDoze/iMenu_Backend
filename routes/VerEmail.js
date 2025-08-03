@@ -182,11 +182,11 @@ async function sendVerificationEmail(email, token) {
 
   try {
     await transporter.sendMail({
-      from: '"iMenu" <no-reply@imenu.com>',
-      to: email,
-      subject: "Verifique seu e-mail",
-      html: html,
-    });
+  from: `"iMenu" <${process.env.EMAIL_USER}>`, // ✅ Remetente igual ao autenticado
+  to: email,
+  subject: "Verifique seu e-mail",
+  html: html,
+});
     console.log(`✅ E-mail enviado para ${email}`);
   } catch (err) {
     console.error("❌ Erro ao enviar e-mail:", err.message);
