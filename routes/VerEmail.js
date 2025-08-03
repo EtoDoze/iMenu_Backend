@@ -94,81 +94,22 @@ export default emailrouter;
 async function sendVerificationEmail(email, token) {
   const link = `https://imenu-backend-pd3a.onrender.com/verify-email?token=${token}`;
 
-  const html = `
-<!DOCTYPE html>
-<html lang="pt-BR">
-<head>
-  <meta charset="UTF-8" />
-  <style>
-    body {
-      background-color: #0f0f0f;
-      font-family: 'Segoe UI', sans-serif;
-      color: #ffffff;
-      margin: 0;
-      padding: 0;
-    }
-    .container {
-      max-width: 600px;
-      margin: auto;
-      background-color: #1c1c1c;
-      border-radius: 10px;
-      padding: 30px;
-      box-shadow: 0 0 10px rgba(0,0,0,0.4);
-    }
-    .header {
-      text-align: center;
-      padding-bottom: 20px;
-      border-bottom: 1px solid #333;
-    }
-    .header img {
-      max-height: 60px;
-      margin-bottom: 10px;
-    }
-    .title {
-      font-size: 22px;
-      color: #4caf50;
-      margin: 20px 0 10px;
-    }
-    .text {
-      font-size: 16px;
-      line-height: 1.5;
-      color: #ccc;
-    }
-    .button {
-      display: inline-block;
-      margin: 30px auto;
-      background-color: #4caf50;
-      color: #fff;
-      padding: 14px 28px;
-      border-radius: 5px;
-      text-decoration: none;
-      font-weight: bold;
-    }
-    .footer {
-      font-size: 12px;
-      color: #888;
-      text-align: center;
-      margin-top: 40px;
-    }
-  </style>
-</head>
-<body>
-  <div class="container">
-    <div class="header">
-      <img src="https://i.imgur.com/fcnYkO0.png" alt="Logo iMenu"/>
-      <h1 class="title">Verifique seu e-mail</h1>
-    </div>
-    <p class="text">Olá! Obrigado por se cadastrar no <strong>iMenu</strong> — menus personalizados, dia a dia simplificado.</p>
-    <p class="text">Para garantir sua segurança e permitir que você aproveite todos os recursos, precisamos que você verifique seu endereço de e-mail.</p>
-    <div style="text-align:center;">
-      <a class="button" href="${link}">Verificar minha conta</a>
-    </div>
-    <p class="text">Se você não solicitou este cadastro, pode simplesmente ignorar esta mensagem.</p>
-    <div class="footer">© 2025 iMenu — Todos os direitos reservados</div>
+const html = `
+<div style="max-width:600px;margin:auto;background-color:#1c1c1c;border-radius:10px;padding:30px;font-family:'Segoe UI',sans-serif;color:#ffffff;">
+  <div style="text-align:center;padding-bottom:20px;border-bottom:1px solid #333;">
+    <img src="https://i.imgur.com/fcnYkO0.png" alt="Logo iMenu" style="max-height:60px;margin-bottom:10px;" />
+    <h1 style="font-size:22px;color:#4caf50;margin:20px 0 10px;">Verifique seu e-mail</h1>
   </div>
-</body>
-</html>
+  <p style="font-size:16px;line-height:1.5;color:#ccc;">Olá! Obrigado por se cadastrar no <strong>iMenu</strong> — menus personalizados, dia a dia simplificado.</p>
+  <p style="font-size:16px;line-height:1.5;color:#ccc;">Para garantir sua segurança e permitir que você aproveite todos os recursos, precisamos que você verifique seu endereço de e-mail.</p>
+  <div style="text-align:center;margin:30px 0;">
+    <a href="${link}" style="display:inline-block;background-color:#4caf50;color:#fff;padding:14px 28px;border-radius:5px;text-decoration:none;font-weight:bold;">Verificar minha conta</a>
+  </div>
+  <p style="font-size:16px;line-height:1.5;color:#ccc;">Se você não solicitou este cadastro, pode simplesmente ignorar esta mensagem.</p>
+  <div style="font-size:12px;color:#888;text-align:center;margin-top:40px;">© 2025 iMenu — Todos os direitos reservados</div>
+</div>
 `;
+
 
   const transporter = nodemailer.createTransport({
     host: process.env.EMAIL_HOST,
