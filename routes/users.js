@@ -17,7 +17,6 @@ import jwt from 'jsonwebtoken';
 import dotenv from 'dotenv';
 dotenv.config();
 const SECRET_KEY = process.env.SECRET_KEY;
-userRouter.use(cors());  // CommonJS
 
 
 
@@ -80,6 +79,64 @@ userRouter.post('/create', async (req, res) => {
             message: "Erro ao criar usuário", 
             error: err.message 
         });
+    }
+});
+
+
+
+// Rota para atualizar dados do usuário
+userRouter.put('/user/update', authenticateToken, async (req, res) => {
+    try {
+        const { name, email, password } = req.body;
+        const userEmail = req.user.email;
+
+        // Validações básicas
+        if (!name || !email) {
+            return res.status(400).json({ error: "Nome e email são obrigatórios" });
+        }
+
+        // Verificar se o novo email já está em uso por outro usuário
+        if (email !== userEmail) {
+            const emailExists = await prisma.user.findUnique({ 
+                where: { email },
+                select: { id: true }
+            });
+            
+            if (emailExists) {
+                return res.status(400).json({ error: "Este email já está em uso" });
+            }
+        }
+
+        const updateData = { name, email };
+        
+        // Atualizar senha apenas se for fornecida
+        if (password) {
+            if (password.length < 6) {
+                return res.status(400).json({ error: "Senha deve ter pelo menos 6 caracteres" });
+            }
+            updateData.password = await bcrypt.hash(password, 10);
+        }
+
+        const updatedUser = await prisma.user.update({
+            where: { email: userEmail },
+            data: updateData,
+            select: {
+                id: true,
+                name: true,
+                email: true,
+                foto: true,
+                dono: true
+            }
+        });
+
+        res.status(200).json({ 
+            message: "Dados atualizados com sucesso",
+            user: updatedUser
+        });
+
+    } catch (err) {
+        console.error("Erro ao atualizar usuário:", err);
+        res.status(500).json({ error: "Erro interno do servidor" });
     }
 });
 
