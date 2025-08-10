@@ -113,7 +113,7 @@ userRouter.put('/user/update', authenticateToken, async (req, res) => {
         const updateData = { 
             name, 
             email,
-            restaurante,
+             restaurante: req.user.dono ? restaurante : undefined, // Só atualiza se for dono
             updateAt: new Date() // Adiciona timestamp de atualização
         };
         
