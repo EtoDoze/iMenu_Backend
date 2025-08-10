@@ -94,20 +94,8 @@ userRouter.put('/user/update', authenticateToken, async (req, res) => {
         console.log('Recebendo solicitação de atualização:', { name, email, password: !!password });
 
         // Validações básicas
-        if (!name || !email) {
+        if (!name) {
             return res.status(400).json({ error: "Nome e email são obrigatórios" });
-        }
-
-        // Verificar se o novo email já está em uso por outro usuário
-        if (email !== userEmail) {
-            const emailExists = await prisma.user.findUnique({ 
-                where: { email },
-                select: { id: true }
-            });
-            
-            if (emailExists) {
-                return res.status(400).json({ error: "Este email já está em uso" });
-            }
         }
 
         const updateData = { 
