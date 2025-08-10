@@ -85,43 +85,42 @@ userRouter.post('/create', async (req, res) => {
 
 
 
-// Rota para atualizar dados do usuário - VERSÃO CORRIGIDA
+// Rota para atualizar dados do usuário - VERSÃO FINAL CORRIGIDA
 userRouter.put('/user/update', authenticateToken, async (req, res) => {
     try {
         const { name, password, restaurante } = req.body;
-        const userEmail = req.user.email; // Usando o email do token JWT
+        const userEmail = req.user.email;
 
         console.log('Recebendo solicitação de atualização:', { 
             name, 
-            password: !!password,
-            restaurante
+            hasPassword: !!password,
+            hasRestaurante: !!restaurante
         });
 
         // Validações básicas
-        if (!name) {
-            return res.status(400).json({ error: "Nome é obrigatório" });
+        if (!name || typeof name !== 'string' || name.trim() === '') {
+            return res.status(400).json({ error: "Nome é obrigatório e deve ser um texto válido" });
         }
 
         const updateData = { 
-            name, 
-            restaurante: req.user.dono ? restaurante : undefined,
+            name: name.trim(),
             updateAt: new Date()
         };
+
+        // Adiciona restaurante apenas se for dono e o campo foi enviado
+        if (req.user.dono && restaurante !== undefined) {
+            updateData.restaurante = restaurante;
+        }
         
         // Atualizar senha apenas se for fornecida e não estiver vazia
-        if (password && password.trim() !== '') {
-            console.log('Atualizando senha...');
+        if (password && typeof password === 'string' && password.trim() !== '') {
             if (password.length < 6) {
                 return res.status(400).json({ error: "Senha deve ter pelo menos 6 caracteres" });
             }
             
             // Gerar novo hash da senha
-            const saltRounds = 10;
-            updateData.password = await bcrypt.hash(password, saltRounds);
-            console.log('Novo hash de senha gerado');
+            updateData.password = await bcrypt.hash(password, 10);
         }
-
-        console.log('Dados para atualização:', updateData);
 
         // Atualizar usuário no banco de dados
         const updatedUser = await prisma.user.update({
@@ -133,20 +132,25 @@ userRouter.put('/user/update', authenticateToken, async (req, res) => {
                 email: true,
                 foto: true,
                 dono: true,
+                restaurante: true,
                 updateAt: true
             }
         });
 
-        console.log('Usuário atualizado com sucesso:', updatedUser);
-
         res.status(200).json({ 
+            success: true,
             message: "Dados atualizados com sucesso",
             user: updatedUser
         });
 
     } catch (err) {
-        console.error("Erro detalhado ao atualizar usuário:", err);
+        console.error("Erro ao atualizar usuário:", {
+            error: err.message,
+            stack: err.stack,
+            body: req.body
+        });
         res.status(500).json({ 
+            success: false,
             error: "Erro interno do servidor",
             details: process.env.NODE_ENV === 'development' ? err.message : undefined
         });
