@@ -85,23 +85,27 @@ userRouter.post('/create', async (req, res) => {
 
 
 
-// Rota para atualizar dados do usuário
+// Rota para atualizar dados do usuário - VERSÃO CORRIGIDA
 userRouter.put('/user/update', authenticateToken, async (req, res) => {
     try {
-        const { name, password, restaurante} = req.body;
-        const userEmail = req.user.email;
+        const { name, password, restaurante } = req.body;
+        const userEmail = req.user.email; // Usando o email do token JWT
 
-        console.log('Recebendo solicitação de atualização:', { name, email, password: !!password });
+        console.log('Recebendo solicitação de atualização:', { 
+            name, 
+            password: !!password,
+            restaurante
+        });
 
         // Validações básicas
         if (!name) {
-            return res.status(400).json({ error: "Nome e email são obrigatórios" });
+            return res.status(400).json({ error: "Nome é obrigatório" });
         }
 
         const updateData = { 
             name, 
-            restaurante: req.user.dono ? restaurante : undefined, // Só atualiza se for dono
-            updateAt: new Date() // Adiciona timestamp de atualização
+            restaurante: req.user.dono ? restaurante : undefined,
+            updateAt: new Date()
         };
         
         // Atualizar senha apenas se for fornecida e não estiver vazia
@@ -135,26 +139,9 @@ userRouter.put('/user/update', authenticateToken, async (req, res) => {
 
         console.log('Usuário atualizado com sucesso:', updatedUser);
 
-        // Gerar novo token JWT se o email foi alterado
-        let newToken = null;
-        if (email !== userEmail) {
-            newToken = jwt.sign(
-                { 
-                    id: updatedUser.id, 
-                    email: updatedUser.email, 
-                    name: updatedUser.name, 
-                    dono: updatedUser.dono 
-                }, 
-                SECRET_KEY, 
-                { expiresIn: '24h' }
-            );
-            console.log('Novo token gerado devido à mudança de email');
-        }
-
         res.status(200).json({ 
             message: "Dados atualizados com sucesso",
-            user: updatedUser,
-            token: newToken // Inclui novo token se email foi alterado
+            user: updatedUser
         });
 
     } catch (err) {
