@@ -30,14 +30,14 @@ bcrypt.hash(testPassword, 10, function(err, hash) {
 
 userRouter.post('/create', async (req, res) => {
     try {
-        const { name, email, password, dono, foto } = req.body;
+        const { name, email, password, dono, foto, restaurante } = req.body;
 
-            if (!name || !email || !password) {
-      return res.status(400).json({ 
-        error: "Todos os campos são obrigatórios",
-        details: { name, email, password }
-      });
-    }
+        if (!name || !email || !password) {
+            return res.status(400).json({ 
+                error: "Todos os campos são obrigatórios",
+                details: { name, email, password }
+            });
+        }
 
         // Verificar se o e-mail já existe
         const existingUser = await prisma.user.findUnique({ where: { email } });
@@ -54,13 +54,13 @@ userRouter.post('/create', async (req, res) => {
                 email, 
                 password: hashedPassword, 
                 dono, 
+                restaurante: dono ? restaurante : null, // Armazena apenas se for dono
                 EToken: Etoken,
-                EmailVer: false, // Garantir que comece como não verificado
+                EmailVer: false,
                 foto: foto || 'images/perfil.png'
             },
         });
 
-        // Enviar e-mail de verificação
         await sendVerificationEmail(email, Etoken);
 
         res.status(201).json({ 
@@ -68,8 +68,9 @@ userRouter.post('/create', async (req, res) => {
             user: {
                 id: user.id,
                 name: user.name,
-                email: user.email
-                // Não retornar dados sensíveis
+                email: user.email,
+                dono: user.dono,
+                restaurante: user.restaurante
             }
         });
 
