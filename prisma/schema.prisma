@@ -27,7 +27,7 @@ model User {
   cards       Card[]
   comentario Comment[]
   foto      String?
-
+  restaurante String?
 }
 
 model Card {
