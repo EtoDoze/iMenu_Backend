@@ -216,7 +216,7 @@ postRoot.get("/recentP", async (req, res) => {
             },
             include: {
                 author: {
-                    select: { name: true, email: true }
+                    select: { name: true, email: true, restaurante:true}
                 },
                 tags: includeTags,
                 avaliacao: {
@@ -255,7 +255,7 @@ postRoot.get("/recent", async (req, res) => {
             },
             include: {
                 author: {
-                    select: { name: true, email: true}
+                    select: { name: true, email: true, restaurante: true}
                 }
                 
             }
@@ -305,10 +305,10 @@ postRoot.get('/posts/:id', async (req, res) => {
             include: {
                 author: {
                     select: {
-                        name: true
+                        name: true,
+                        restaurante: true  // Adicione esta linha
                     }
                 },
-                // Corrigido para incluir tags corretamente
                 tags: {
                     select: {
                         name: true
