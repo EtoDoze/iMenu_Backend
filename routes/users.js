@@ -490,7 +490,8 @@ userRouter.post('/login', async (req, res) => {
             name: finduser.name, 
             email: finduser.email, 
             dono: finduser.dono,
-            foto: finduser.foto
+            foto: finduser.foto,
+            restaurante: finduser.restaurante // Adicione esta linha
         });
 
     } catch (err) {
