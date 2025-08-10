@@ -88,7 +88,7 @@ userRouter.post('/create', async (req, res) => {
 // Rota para atualizar dados do usuário
 userRouter.put('/user/update', authenticateToken, async (req, res) => {
     try {
-        const { name, email, password } = req.body;
+        const { name, email, password, restaurante} = req.body;
         const userEmail = req.user.email;
 
         console.log('Recebendo solicitação de atualização:', { name, email, password: !!password });
@@ -113,6 +113,7 @@ userRouter.put('/user/update', authenticateToken, async (req, res) => {
         const updateData = { 
             name, 
             email,
+            restaurante,
             updateAt: new Date() // Adiciona timestamp de atualização
         };
         
