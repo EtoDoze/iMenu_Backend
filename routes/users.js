@@ -12,25 +12,16 @@ import bcrypt from 'bcryptjs';
 import authenticateToken from './auth.js';  // ES Module
 import sendVerificationEmail from "../API/email.js"
 
-const testPassword = 'minhaSenha';
 import jwt from 'jsonwebtoken';
 import dotenv from 'dotenv';
 dotenv.config();
 const SECRET_KEY = process.env.SECRET_KEY;
 
 
-
-
-bcrypt.hash(testPassword, 10, function(err, hash) {
-  if (err) console.error(err);
-  console.log(hash); // Verifique se o hash está sendo gerado corretamente
-});
-
-
-
+// Criar usuário
 userRouter.post('/create', async (req, res) => {
     try {
-        const { name, email, password, dono, foto, restaurante } = req.body;
+        const { name, email, password, dono, foto, restaurante, telefone, estadoId, estadoNome, cidadeId, cidadeNome } = req.body;
 
         if (!name || !email || !password) {
             return res.status(400).json({ 
@@ -39,7 +30,6 @@ userRouter.post('/create', async (req, res) => {
             });
         }
 
-        // Verificar se o e-mail já existe
         const existingUser = await prisma.user.findUnique({ where: { email } });
         if (existingUser) {
             return res.status(400).json({ message: "E-mail já está em uso" });
@@ -54,7 +44,12 @@ userRouter.post('/create', async (req, res) => {
                 email, 
                 password: hashedPassword, 
                 dono, 
-                restaurante: dono ? restaurante : null, // Armazena apenas se for dono
+                restaurante: dono ? restaurante : null,
+                telefone,
+                estadoId,
+                estadoNome,
+                cidadeId,
+                cidadeNome,
                 EToken: Etoken,
                 EmailVer: false,
                 foto: foto || 'images/perfil.png'
@@ -70,7 +65,10 @@ userRouter.post('/create', async (req, res) => {
                 name: user.name,
                 email: user.email,
                 dono: user.dono,
-                restaurante: user.restaurante
+                restaurante: user.restaurante,
+                telefone: user.telefone,
+                estadoNome: user.estadoNome,
+                cidadeNome: user.cidadeNome
             }
         });
 
@@ -84,45 +82,37 @@ userRouter.post('/create', async (req, res) => {
 });
 
 
-
-// Rota para atualizar dados do usuário - VERSÃO FINAL CORRIGIDA
+// Atualizar usuário
 userRouter.put('/user/update', authenticateToken, async (req, res) => {
     try {
-        const { name, password, restaurante } = req.body;
+        const { name, password, restaurante, telefone, estadoId, estadoNome, cidadeId, cidadeNome } = req.body;
         const userEmail = req.user.email;
 
-        console.log('Recebendo solicitação de atualização:', { 
-            name, 
-            hasPassword: !!password,
-            hasRestaurante: !!restaurante
-        });
-
-        // Validações básicas
         if (!name || typeof name !== 'string' || name.trim() === '') {
             return res.status(400).json({ error: "Nome é obrigatório e deve ser um texto válido" });
         }
 
         const updateData = { 
             name: name.trim(),
-            updateAt: new Date()
+            updateAt: new Date(),
+            telefone,
+            estadoId,
+            estadoNome,
+            cidadeId,
+            cidadeNome
         };
 
-        // Adiciona restaurante apenas se for dono e o campo foi enviado
         if (req.user.dono && restaurante !== undefined) {
             updateData.restaurante = restaurante;
         }
         
-        // Atualizar senha apenas se for fornecida e não estiver vazia
         if (password && typeof password === 'string' && password.trim() !== '') {
             if (password.length < 6) {
                 return res.status(400).json({ error: "Senha deve ter pelo menos 6 caracteres" });
             }
-            
-            // Gerar novo hash da senha
             updateData.password = await bcrypt.hash(password, 10);
         }
 
-        // Atualizar usuário no banco de dados
         const updatedUser = await prisma.user.update({
             where: { email: userEmail },
             data: updateData,
@@ -133,6 +123,11 @@ userRouter.put('/user/update', authenticateToken, async (req, res) => {
                 foto: true,
                 dono: true,
                 restaurante: true,
+                telefone: true,
+                estadoId: true,
+                estadoNome: true,
+                cidadeId: true,
+                cidadeNome: true,
                 updateAt: true
             }
         });
@@ -144,23 +139,15 @@ userRouter.put('/user/update', authenticateToken, async (req, res) => {
         });
 
     } catch (err) {
-        console.error("Erro ao atualizar usuário:", {
-            error: err.message,
-            stack: err.stack,
-            body: req.body
-        });
-        res.status(500).json({ 
-            success: false,
-            error: "Erro interno do servidor",
-            details: process.env.NODE_ENV === 'development' ? err.message : undefined
-        });
+        console.error("Erro ao atualizar usuário:", err);
+        res.status(500).json({ success: false, error: "Erro interno do servidor" });
     }
 });
 
-// Rota para buscar restaurantes populares (usuários donos) - Versão corrigida
+
+// Restaurantes populares
 userRouter.get('/restaurantes/populares', async (req, res) => {
     try {
-        // 1. Busca todos os restaurantes (usuários donos verificados)
         const restaurantes = await prisma.user.findMany({
             where: {
                 dono: true,
@@ -168,48 +155,31 @@ userRouter.get('/restaurantes/populares', async (req, res) => {
             },
             include: {
                 cards: {
-                    where: {
-                        public: true // FILTRO IMPORTANTE: Somente cardápios públicos
-                    },
+                    where: { public: true },
                     select: {
                         views: true,
-                        avaliacao: {
-                            select: {
-                                nota: true
-                            }
-                        },
+                        avaliacao: { select: { nota: true } },
                         creatAt: true
                     }
                 }
             }
         });
 
-        // 2. Calcula métricas de popularidade apenas com posts públicos
         const restaurantesComPopularidade = restaurantes.map(restaurante => {
-            const agora = new Date();
             const umMesAtras = new Date();
             umMesAtras.setMonth(umMesAtras.getMonth() - 1);
 
-            // Filtra cardápios públicos dos últimos 30 dias
             const cardapiosRecentes = restaurante.cards.filter(card => 
                 new Date(card.creatAt) > umMesAtras
             );
 
-            // Cálculos de métricas (apenas com dados públicos)
             const totalViews = restaurante.cards.reduce((sum, card) => sum + (card.views || 0), 0);
             const viewsRecentes = cardapiosRecentes.reduce((sum, card) => sum + (card.views || 0), 0);
             
-            const ratings = restaurante.cards.flatMap(card => 
-                card.avaliacao.map(av => av.nota)
-            );
-            const avgRating = ratings.length > 0 ? 
-                (ratings.reduce((a, b) => a + b, 0) / ratings.length) : 0;
+            const ratings = restaurante.cards.flatMap(card => card.avaliacao.map(av => av.nota));
+            const avgRating = ratings.length > 0 ? (ratings.reduce((a, b) => a + b, 0) / ratings.length) : 0;
 
-            // Pontuação de popularidade (apenas com dados públicos)
-            const popularidadeScore = 
-                (totalViews * 0.4) +        // Visualizações totais
-                (viewsRecentes * 0.5) +     // Visualizações recentes
-                (avgRating * 10 * 0.1);     // Avaliação média
+            const popularidadeScore = (totalViews * 0.4) + (viewsRecentes * 0.5) + (avgRating * 10 * 0.1);
 
             return {
                 ...restaurante,
@@ -224,12 +194,10 @@ userRouter.get('/restaurantes/populares', async (req, res) => {
             };
         });
 
-        // 3. Ordena por pontuação de popularidade
         const restaurantesOrdenados = restaurantesComPopularidade.sort((a, b) => 
             b.metrics.popularidadeScore - a.metrics.popularidadeScore
-        ).slice(0, 10); // Top 10
+        ).slice(0, 10);
 
-        // 4. Formata a resposta
         const resultado = restaurantesOrdenados.map(restaurante => ({
             id: restaurante.id,
             name: restaurante.name,
@@ -238,23 +206,22 @@ userRouter.get('/restaurantes/populares', async (req, res) => {
             viewsRecentes: restaurante.metrics.viewsRecentes,
             avgRating: restaurante.metrics.avgRating.toFixed(1),
             totalCardapios: restaurante.metrics.totalCardapios,
-            cardapiosRecentes: restaurante.metrics.cardapiosRecentes
+            cardapiosRecentes: restaurante.metrics.cardapiosRecentes,
+            cidadeNome: restaurante.cidadeNome,
+            estadoNome: restaurante.estadoNome
         }));
 
         res.status(200).json(resultado);
     } catch (err) {
         console.error('Erro ao buscar restaurantes populares:', err);
-        res.status(500).json({ 
-            error: 'Erro interno do servidor',
-            details: err.message 
-        });
+        res.status(500).json({ error: 'Erro interno do servidor', details: err.message });
     }
 });
 
-// Rota para excluir usuário (admin)
+
+// Excluir usuário (admin)
 userRouter.delete('/users/:id', authenticateToken, async (req, res) => {
     try {
-        // Verifica se é admin
         if (req.user.email !== "imenucompany12@gmail.com") {
             return res.status(403).json({ error: "Acesso negado" });
         }
@@ -264,7 +231,6 @@ userRouter.delete('/users/:id', authenticateToken, async (req, res) => {
             return res.status(400).json({ error: "ID inválido" });
         }
 
-        // Primeiro exclui todos os posts do usuário
         const posts = await prisma.card.findMany({
             where: { authorId: userId },
             select: { id: true }
@@ -276,7 +242,6 @@ userRouter.delete('/users/:id', authenticateToken, async (req, res) => {
             await prisma.card.delete({ where: { id: post.id } });
         }
 
-        // Depois exclui o usuário
         await prisma.user.delete({ where: { id: userId } });
 
         res.status(200).json({ success: true });
@@ -286,10 +251,10 @@ userRouter.delete('/users/:id', authenticateToken, async (req, res) => {
     }
 });
 
-// Rota para pegar todos os usuários (admin)
+
+// Listar todos usuários (admin)
 userRouter.get('/users/all', authenticateToken, async (req, res) => {
     try {
-        // Verifica se é admin
         if (req.user.email !== "imenucompany12@gmail.com") {
             return res.status(403).json({ error: "Acesso negado" });
         }
@@ -301,11 +266,14 @@ userRouter.get('/users/all', authenticateToken, async (req, res) => {
                 email: true,
                 dono: true,
                 EmailVer: true,
+                telefone: true,
+                estadoId: true,
+                estadoNome: true,
+                cidadeId: true,
+                cidadeNome: true,
                 creatAt: true
             },
-            orderBy: {
-                creatAt: 'desc'
-            }
+            orderBy: { creatAt: 'desc' }
         });
 
         res.status(200).json(users);
@@ -315,7 +283,8 @@ userRouter.get('/users/all', authenticateToken, async (req, res) => {
     }
 });
 
-// Obter dados de um usuário específico
+
+// Buscar usuário específico
 userRouter.get('/user/:userId', authenticateToken, async (req, res) => {
     try {
         const userId = parseInt(req.params.userId);
@@ -330,8 +299,10 @@ userRouter.get('/user/:userId', authenticateToken, async (req, res) => {
                 name: true,
                 dono: true,
                 EmailVer: true,
-                foto: true
-                // Removido o campo location que não existe
+                foto: true,
+                telefone: true,
+                estadoNome: true,
+                cidadeNome: true
             }
         });
 
@@ -339,7 +310,6 @@ userRouter.get('/user/:userId', authenticateToken, async (req, res) => {
             return res.status(404).json({ error: 'Usuário não encontrado' });
         }
 
-        // Verificar se o email está verificado
         if (!user.EmailVer) {
             return res.status(403).json({ error: 'Email não verificado' });
         }
@@ -351,7 +321,8 @@ userRouter.get('/user/:userId', authenticateToken, async (req, res) => {
     }
 });
 
-// Obter posts públicos de um usuário
+
+// Posts públicos de um usuário
 userRouter.get('/user/:userId/posts', authenticateToken, async (req, res) => {
     try {
         const userId = parseInt(req.params.userId);
@@ -360,13 +331,8 @@ userRouter.get('/user/:userId/posts', authenticateToken, async (req, res) => {
         }
 
         const posts = await prisma.card.findMany({
-            where: { 
-                authorId: userId,
-                public: true
-            },
-            orderBy: {
-                creatAt: 'desc'
-            }
+            where: { authorId: userId, public: true },
+            orderBy: { creatAt: 'desc' }
         });
 
         res.status(200).json(posts);
@@ -376,7 +342,8 @@ userRouter.get('/user/:userId/posts', authenticateToken, async (req, res) => {
     }
 });
 
-// Obter posts privados de um usuário (somente para o próprio usuário)
+
+// Posts privados de um usuário
 userRouter.get('/user/:userId/posts/private', authenticateToken, async (req, res) => {
     try {
         const userId = parseInt(req.params.userId);
@@ -386,19 +353,13 @@ userRouter.get('/user/:userId/posts/private', authenticateToken, async (req, res
             return res.status(400).json({ error: 'ID de usuário inválido' });
         }
 
-        // Verificar se o usuário está tentando acessar seus próprios posts
         if (userId !== requestingUserId) {
             return res.status(403).json({ error: 'Acesso não autorizado' });
         }
 
         const posts = await prisma.card.findMany({
-            where: { 
-                authorId: userId,
-                public: false
-            },
-            orderBy: {
-                creatAt: 'desc'
-            }
+            where: { authorId: userId, public: false },
+            orderBy: { creatAt: 'desc' }
         });
 
         res.status(200).json(posts);
@@ -408,59 +369,49 @@ userRouter.get('/user/:userId/posts/private', authenticateToken, async (req, res
     }
 });
 
+
+// Login
 userRouter.post('/login', async (req, res) => {
     try {
-      const { email, password } = req.body;
-      // Verificar se todos os campos necessários foram enviado
-        console.log(email, password)
-      const finduser = await prisma.user.findUnique({
-        where: { email: email }
-      });
-  
-      if (!finduser) {
-        return res.status(401).json({ message: "Usuário não encontrado" });
-      }
-  
-  
-      const isPasswordValid = await bcrypt.compare(password, finduser.password);
-  
-      if (!isPasswordValid) {
-        return res.status(401).json({ message: 'Credenciais inválidas' });
-      }
-  
-      // Gerar o token JWT
-      const token = jwt.sign({ id: finduser.id, email: finduser.email, name: finduser.name, dono: finduser.dono }, SECRET_KEY, {
-        expiresIn: '24h',
-      });
-  
-      // Retornar o token para o cliente
-      return res.status(200).json({
-        message: 'Login realizado com sucesso!',
-        token,
-      });
-  
-    } catch (error) {
-      console.error('Erro ao logar com o usuário:', error);
-      return res.status(500).json({
-        message: 'Erro interno ao tentar logar',
-        error: error.message,
-      });
-    }
-  });
-  
+        const { email, password } = req.body;
 
-  userRouter.get('/dados', authenticateToken, async (req, res) => {
+        const finduser = await prisma.user.findUnique({ where: { email } });
+        if (!finduser) {
+            return res.status(401).json({ message: "Usuário não encontrado" });
+        }
+
+        if (!finduser.EmailVer) {
+            return res.status(403).json({ message: "Email não verificado!" });
+        }
+
+        const isPasswordValid = await bcrypt.compare(password, finduser.password);
+        if (!isPasswordValid) {
+            return res.status(401).json({ message: 'Credenciais inválidas' });
+        }
+
+        const token = jwt.sign(
+            { id: finduser.id, email: finduser.email, name: finduser.name, dono: finduser.dono },
+            SECRET_KEY,
+            { expiresIn: '24h' }
+        );
+
+        return res.status(200).json({ message: 'Login realizado com sucesso!', token });
+    } catch (error) {
+        console.error('Erro ao logar com o usuário:', error);
+        return res.status(500).json({ message: 'Erro interno ao tentar logar', error: error.message });
+    }
+});
+
+
+// Dados do usuário logado
+userRouter.get('/dados', authenticateToken, async (req, res) => {
     try {
-        const userEmail = req.user.email; // Pegando o e-mail do token JWT
-        const finduser = await prisma.user.findUnique({
-            where: { email: userEmail }
-        });
+        const userEmail = req.user.email;
+        const finduser = await prisma.user.findUnique({ where: { email: userEmail } });
 
         if (!finduser) {
             return res.status(404).json({ error: "Usuário não encontrado!" });
         }
-
-        // ✅ Corrigindo a verificação do email verificado
         if (finduser.EmailVer === false) {
             return res.status(403).json({ error: "Email não verificado!" });
         }
@@ -470,9 +421,13 @@ userRouter.post('/login', async (req, res) => {
             email: finduser.email, 
             dono: finduser.dono,
             foto: finduser.foto,
-            restaurante: finduser.restaurante // Adicione esta linha
+            restaurante: finduser.restaurante,
+            telefone: finduser.telefone,
+            estadoId: finduser.estadoId,
+            estadoNome: finduser.estadoNome,
+            cidadeId: finduser.cidadeId,
+            cidadeNome: finduser.cidadeNome
         });
-
     } catch (err) {
         console.error("Erro ao buscar usuário:", err);
         return res.status(500).json({ error: "Erro interno do servidor" });
@@ -480,25 +435,17 @@ userRouter.post('/login', async (req, res) => {
 });
 
 
+// Posts do próprio usuário (públicos)
 userRouter.get('/userposts', authenticateToken, async (req, res) => {
     try {
-        const user_id = req.user.id
-        
+        const user_id = req.user.id;
         if (isNaN(user_id)) {
             return res.status(400).json({ error: 'ID de usuário inválido' });
         }
 
         const user_cards = await prisma.card.findMany({
-            where: { 
-                authorId: user_id,
-                public: true
-            },
-
-        orderBy: {
-                  // Primeiro ordena pelos que têm data (mais recente primeiro)
-                    creatAt: 'desc'
-                }
-            
+            where: { authorId: user_id, public: true },
+            orderBy: { creatAt: 'desc' }
         });
 
         if (!user_cards) {
@@ -506,35 +453,24 @@ userRouter.get('/userposts', authenticateToken, async (req, res) => {
         }
 
         res.status(200).json(user_cards);
-        console.log("cardápios achado: " +user_cards)
     } catch (err) {
         console.error('Erro ao buscar posts:', err);
-        res.status(500).json({ 
-            error: 'Erro interno do servidor',
-            details: err.message 
-        });
+        res.status(500).json({ error: 'Erro interno do servidor', details: err.message });
     }
 });
 
+
+// Posts do próprio usuário (privados)
 userRouter.get('/userposts_p', authenticateToken, async (req, res) => {
     try {
-        const user_id = req.user.id
-        
+        const user_id = req.user.id;
         if (isNaN(user_id)) {
             return res.status(400).json({ error: 'ID de usuário inválido' });
         }
 
         const user_cards = await prisma.card.findMany({
-            where: { 
-                authorId: user_id,
-                public: false
-            },
-
-        orderBy: {
-                  // Primeiro ordena pelos que têm data (mais recente primeiro)
-                    creatAt: 'desc'
-                }
-            
+            where: { authorId: user_id, public: false },
+            orderBy: { creatAt: 'desc' }
         });
 
         if (!user_cards) {
@@ -542,40 +478,33 @@ userRouter.get('/userposts_p', authenticateToken, async (req, res) => {
         }
 
         res.status(200).json(user_cards);
-        console.log("cardápios achado: " +user_cards)
     } catch (err) {
         console.error('Erro ao buscar posts:', err);
-        res.status(500).json({ 
-            error: 'Erro interno do servidor',
-            details: err.message 
-        });
+        res.status(500).json({ error: 'Erro interno do servidor', details: err.message });
     }
 });
 
 
-// Rota para atualizar a foto do usuário
+// Atualizar foto do usuário
 userRouter.post('/user/photo', authenticateToken, async (req, res) => {
-  try {
-    const { foto } = req.body;
-    const userEmail = req.user.email;
+    try {
+        const { foto } = req.body;
+        const userEmail = req.user.email;
 
-    if (!foto) {
-      return res.status(400).json({ error: "URL da foto não fornecida" });
+        if (!foto) {
+            return res.status(400).json({ error: "URL da foto não fornecida" });
+        }
+
+        const updatedUser = await prisma.user.update({
+            where: { email: userEmail },
+            data: { foto }
+        });
+
+        res.status(200).json({ message: "Foto atualizada com sucesso", foto: updatedUser.foto });
+    } catch (err) {
+        console.error("Erro ao atualizar foto:", err);
+        res.status(500).json({ error: "Erro interno do servidor" });
     }
-
-    const updatedUser = await prisma.user.update({
-      where: { email: userEmail },
-      data: { foto }
-    });
-
-    res.status(200).json({ 
-      message: "Foto atualizada com sucesso",
-      foto: updatedUser.foto
-    });
-  } catch (err) {
-    console.error("Erro ao atualizar foto:", err);
-    res.status(500).json({ error: "Erro interno do servidor" });
-  }
 });
 
-export default userRouter
+export default userRouter;
