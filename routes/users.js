@@ -38,25 +38,26 @@ userRouter.post('/create', async (req, res) => {
         const hashedPassword = await bcrypt.hash(password, 10);
         const Etoken = crypto.randomBytes(32).toString("hex");
 
-        const user = await prisma.user.create({
-            data: { 
-                name, 
-                email, 
-                password: hashedPassword, 
-                dono, 
-                restaurante: dono ? restaurante : null,
-                telefone,
-                estadoId,
-                estadoNome,
-                cidadeId,
-                cidadeNome,
-                EToken: Etoken,
-                EmailVer: false,
-                foto: foto || 'images/perfil.png'
-            },
-        });
+    const user = await prisma.user.create({
+  data: { 
+    name, 
+    email, 
+    password: hashedPassword, 
+    dono, 
+    restaurante: dono ? restaurante : null,
+    telefone: telefone || null,
+    estadoId: estadoId || null,
+    estadoNome: estadoNome || null,
+    cidadeId: cidadeId || null,
+    cidadeNome: cidadeNome || null,
+    EToken: Etoken,
+    EmailVer: false,
+    foto: foto || 'images/perfil.png'
+  },
+});
 
-        await sendVerificationEmail(email, Etoken);
+
+        //await sendVerificationEmail(email, Etoken);
 
         res.status(201).json({ 
             message: "Usuário criado com sucesso. Por favor verifique seu e-mail.",
