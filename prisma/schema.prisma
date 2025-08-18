@@ -36,6 +36,7 @@ model User {
 
   cidadeId     Int?     // ID numérico do IBGE
   cidadeNome   String?  
+  horarios    String?
 }
 
 
