@@ -475,7 +475,8 @@ userRouter.get('/dados', authenticateToken, async (req, res) => {
             estadoId: finduser.estadoId,
             estadoNome: finduser.estadoNome,
             cidadeId: finduser.cidadeId,
-            cidadeNome: finduser.cidadeNome
+            cidadeNome: finduser.cidadeNome,
+            horarios: finduser.horarios 
         });
     } catch (err) {
         console.error("Erro ao buscar usuário:", err);
