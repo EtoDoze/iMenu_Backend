@@ -57,10 +57,10 @@ userRouter.post('/create', async (req, res) => {
 });
 
 
-        //await sendVerificationEmail(email, Etoken);
 
-        res.status(201).json({ 
-            message: "Usuário criado com sucesso. Por favor verifique seu e-mail.",
+await sendVerificationEmail(email, Etoken);
+res.status(201).json({ 
+    message: "Usuário criado com sucesso. Por favor verifique seu e-mail.",
             user: {
                 id: user.id,
                 name: user.name,
@@ -376,30 +376,69 @@ userRouter.post('/login', async (req, res) => {
     try {
         const { email, password } = req.body;
 
-        const finduser = await prisma.user.findUnique({ where: { email } });
+        // 1. Verifique se o email e senha foram fornecidos
+        if (!email || !password) {
+            return res.status(400).json({ message: "Email e senha são obrigatórios" });
+        }
+
+        const finduser = await prisma.user.findUnique({ 
+            where: { email },
+            select: {
+                id: true,
+                email: true,
+                password: true,
+                name: true,
+                dono: true,
+                EmailVer: true
+            }
+        });
+
         if (!finduser) {
-            return res.status(401).json({ message: "Usuário não encontrado" });
+            return res.status(401).json({ message: "Credenciais inválidas" });
         }
 
+        // 2. Verifique se o email foi verificado
         if (!finduser.EmailVer) {
-            return res.status(403).json({ message: "Email não verificado!" });
+            return res.status(403).json({ 
+                message: "Email não verificado! Por favor, verifique seu email.",
+                needsVerification: true
+            });
         }
 
+        // 3. Compare a senha
         const isPasswordValid = await bcrypt.compare(password, finduser.password);
         if (!isPasswordValid) {
             return res.status(401).json({ message: 'Credenciais inválidas' });
         }
 
+        // 4. Crie o token
         const token = jwt.sign(
-            { id: finduser.id, email: finduser.email, name: finduser.name, dono: finduser.dono },
+            { 
+                id: finduser.id, 
+                email: finduser.email, 
+                name: finduser.name, 
+                dono: finduser.dono 
+            },
             SECRET_KEY,
             { expiresIn: '24h' }
         );
 
-        return res.status(200).json({ message: 'Login realizado com sucesso!', token });
+        return res.status(200).json({ 
+            message: 'Login realizado com sucesso!', 
+            token,
+            user: {
+                id: finduser.id,
+                name: finduser.name,
+                email: finduser.email,
+                dono: finduser.dono
+            }
+        });
     } catch (error) {
         console.error('Erro ao logar com o usuário:', error);
-        return res.status(500).json({ message: 'Erro interno ao tentar logar', error: error.message });
+        return res.status(500).json({ 
+            message: 'Erro interno ao tentar logar', 
+            error: error.message 
+        });
     }
 });
 
