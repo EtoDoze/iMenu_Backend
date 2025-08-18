@@ -84,9 +84,10 @@ res.status(201).json({
 
 
 // Atualizar usuário
+// Atualizar usuário - Rota corrigida
 userRouter.put('/user/update', authenticateToken, async (req, res) => {
     try {
-        const { name, password, restaurante, telefone, estadoId, estadoNome, cidadeId, cidadeNome } = req.body;
+        const { name, password, restaurante, telefone, estadoId, estadoNome, cidadeId, cidadeNome, horario } = req.body;
         const userEmail = req.user.email;
 
         if (!name || typeof name !== 'string' || name.trim() === '') {
@@ -95,13 +96,16 @@ userRouter.put('/user/update', authenticateToken, async (req, res) => {
 
         const updateData = { 
             name: name.trim(),
-            updateAt: new Date(),
-            telefone,
-            estadoId,
-            estadoNome,
-            cidadeId,
-            cidadeNome
+            updateAt: new Date()
         };
+
+        // Adicione todos os campos que podem ser atualizados
+        if (telefone !== undefined) updateData.telefone = telefone;
+        if (estadoId !== undefined) updateData.estadoId = estadoId;
+        if (estadoNome !== undefined) updateData.estadoNome = estadoNome;
+        if (cidadeId !== undefined) updateData.cidadeId = cidadeId;
+        if (cidadeNome !== undefined) updateData.cidadeNome = cidadeNome;
+        if (horario !== undefined) updateData.horarios = horario; // Adicionado campo de horários
 
         if (req.user.dono && restaurante !== undefined) {
             updateData.restaurante = restaurante;
@@ -129,6 +133,7 @@ userRouter.put('/user/update', authenticateToken, async (req, res) => {
                 estadoNome: true,
                 cidadeId: true,
                 cidadeNome: true,
+                horarios: true, // Adicionado para retornar
                 updateAt: true
             }
         });
@@ -141,7 +146,11 @@ userRouter.put('/user/update', authenticateToken, async (req, res) => {
 
     } catch (err) {
         console.error("Erro ao atualizar usuário:", err);
-        res.status(500).json({ success: false, error: "Erro interno do servidor" });
+        res.status(500).json({ 
+            success: false, 
+            error: "Erro interno do servidor",
+            details: err.message // Adicionado para debug
+        });
     }
 });
 
