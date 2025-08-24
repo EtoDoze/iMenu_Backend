@@ -316,7 +316,7 @@ postRoot.get('/posts/:id/comments', authenticateToken, async (req, res) => {
     }
 });
 
-// Rota para estatísticas de uso semanal (otimizada)
+// Rota para estatísticas de uso semanal (corrigida)
 postRoot.get('/analytics/weekly', authenticateToken, async (req, res) => {
     try {
         const { startDate, endDate } = req.query;
@@ -407,13 +407,19 @@ postRoot.get('/analytics/weekly', authenticateToken, async (req, res) => {
                 }
             }),
             
-            // Posts mais visualizados no período
+            // Posts mais visualizados no período (corrigido)
             prisma.card.findMany({
                 where: {
                     public: true,
-                    creatAt: {
-                        gte: start,
-                        lte: end
+                    // Remover filtro por data de criação
+                    // Incluir posts que tiveram visualizações no período
+                    PostView: {
+                        some: {
+                            viewedAt: {
+                                gte: start,
+                                lte: end
+                            }
+                        }
                     }
                 },
                 include: {
@@ -422,28 +428,38 @@ postRoot.get('/analytics/weekly', authenticateToken, async (req, res) => {
                             name: true
                         }
                     },
-                    // Verifique o nome correto da relação de comentários no seu schema
                     comentario: {
+                        select: {
+                            id: true
+                        }
+                    },
+                    // Incluir visualizações do período para ordenação correta
+                    PostView: {
+                        where: {
+                            viewedAt: {
+                                gte: start,
+                                lte: end
+                            }
+                        },
                         select: {
                             id: true
                         }
                     }
                 },
                 orderBy: {
-                    views: 'desc'
+                    // Ordenar pela quantidade de visualizações no período
+                    PostView: {
+                        _count: 'desc'
+                    }
                 },
                 take: 10
             }),
             
-            // Posts mais comentados no período
+            // Posts mais comentados no período (corrigido)
             prisma.card.findMany({
                 where: {
                     public: true,
-                    creatAt: {
-                        gte: start,
-                        lte: end
-                    },
-                    // Garantir que tenha pelo menos um comentário
+                    // Garantir que tenha pelo menos um comentário no período
                     comentario: {
                         some: {
                             createdAt: {
@@ -459,15 +475,20 @@ postRoot.get('/analytics/weekly', authenticateToken, async (req, res) => {
                             name: true
                         }
                     },
-                    // Verifique o nome correto da relação de comentários no seu schema
                     comentario: {
+                        where: {
+                            createdAt: {
+                                gte: start,
+                                lte: end
+                            }
+                        },
                         select: {
                             id: true
                         }
                     }
                 },
                 orderBy: {
-                    // Ordenar pela quantidade de comentários
+                    // Ordenar pela quantidade de comentários no período
                     comentario: {
                         _count: 'desc'
                     }
@@ -520,7 +541,7 @@ postRoot.get('/analytics/weekly', authenticateToken, async (req, res) => {
         const processedTopViewedPosts = topViewedPosts.map(post => ({
             id: post.id,
             title: post.title,
-            views: post.views,
+            views: post.PostView ? post.PostView.length : 0, // Visualizações no período
             commentCount: post.comentario ? post.comentario.length : 0,
             author: post.author
         }));
@@ -529,8 +550,8 @@ postRoot.get('/analytics/weekly', authenticateToken, async (req, res) => {
         const processedTopCommentedPosts = topCommentedPosts.map(post => ({
             id: post.id,
             title: post.title,
-            views: post.views,
-            commentCount: post.comentario ? post.comentario.length : 0,
+            views: post.views || 0, // Visualizações totais
+            commentCount: post.comentario ? post.comentario.length : 0, // Comentários no período
             author: post.author
         }));
         
