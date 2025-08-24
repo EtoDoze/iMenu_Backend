@@ -54,9 +54,20 @@ model Card {
   updateAt DateTime @updatedAt
   avaliacao Avaliacao[]
   comentario Comment[]
+  PostView PostView[]
   tags      Tag[]
   views     Int?     @default(0)
 }
+
+// No seu schema.prisma, adicione esta model:
+model PostView {
+  id        Int      @id @default(autoincrement())
+  postId    Int
+  post      Card     @relation(fields: [postId], references: [id])
+  viewedAt  DateTime @default(now())
+  ipAddress String?  // Para rastrear visualizações únicas
+}
+
 model Tag {
   id     Int    @id @default(autoincrement())
   name   String @unique

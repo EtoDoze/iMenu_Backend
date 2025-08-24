@@ -283,7 +283,6 @@ postRoot.get('/comments/all', authenticateToken, async (req, res) => {
 });
 
 // Rota para estatísticas de uso semanal (otimizada)
-// Solução alternativa sem criar nova tabela:
 postRoot.get('/analytics/weekly', authenticateToken, async (req, res) => {
     try {
         const { startDate, endDate } = req.query;
@@ -296,8 +295,8 @@ postRoot.get('/analytics/weekly', authenticateToken, async (req, res) => {
         const start = new Date(startDate + 'T00:00:00');
         const end = new Date(endDate + 'T23:59:59');
         
-        // Buscar dados
-        const [users, posts, comments, allPostsWithViews] = await Promise.all([
+        // Buscar dados de forma eficiente - AGORA COM DATAS CORRETAS
+        const [users, posts, comments, views] = await Promise.all([
             // Usuários criados no período
             prisma.user.findMany({
                 where: {
@@ -323,8 +322,7 @@ postRoot.get('/analytics/weekly', authenticateToken, async (req, res) => {
                 },
                 select: {
                     id: true,
-                    creatAt: true,
-                    views: true
+                    creatAt: true
                 }
             }),
             
@@ -345,32 +343,30 @@ postRoot.get('/analytics/weekly', authenticateToken, async (req, res) => {
                 }
             }),
             
-            // Todos os posts públicos para estimar visualizações
-            prisma.card.findMany({
+            // Visualizações que ocorreram no período
+            prisma.postView.findMany({
                 where: {
-                    public: true
+                    viewedAt: {
+                        gte: start,
+                        lte: end
+                    },
+                    post: {
+                        public: true
+                    }
                 },
                 select: {
                     id: true,
-                    views: true,
-                    creatAt: true
+                    viewedAt: true,
+                    postId: true
                 }
             })
         ]);
         
-        // Calcular totais
+        // Calcular totais - AGORA APENAS DO PERÍODO
         const totalUsers = users.length;
         const totalPosts = posts.length;
         const totalComments = comments.length;
-        
-        // ESTIMATIVA: Calcular visualizações baseado na idade dos posts
-        // Posts mais recentes tendem a ter mais visualizações recentes
-        const totalViews = allPostsWithViews.reduce((sum, post) => {
-            const postAgeDays = Math.max(1, (new Date() - new Date(post.creatAt)) / (1000 * 60 * 60 * 24));
-            const viewsPerDay = (post.views || 0) / postAgeDays;
-            const periodDays = (end - start) / (1000 * 60 * 60 * 24) + 1;
-            return sum + Math.round(viewsPerDay * periodDays);
-        }, 0);
+        const totalViews = views.length; // Agora são apenas as views do período
         
         // Calcular dados diários
         const dailyData = [];
@@ -391,8 +387,9 @@ postRoot.get('/analytics/weekly', authenticateToken, async (req, res) => {
                 isSameDay(new Date(comment.createdAt), currentDate)
             ).length;
             
-            // Estimativa diária de visualizações
-            const dayViews = Math.round(totalViews / ((end - start) / (1000 * 60 * 60 * 24) + 1));
+            const dayViews = views.filter(view => 
+                isSameDay(new Date(view.viewedAt), currentDate)
+            ).length;
             
             dailyData.push({
                 date: dateStr,
