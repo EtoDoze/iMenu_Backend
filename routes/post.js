@@ -245,6 +245,50 @@ postRoot.get("/recentP", async (req, res) => {
     }
 });
 
+
+// Adicione esta rota no seu arquivo de rotas (post.js ou similar)
+
+// Rota para buscar comentários por período
+postRoot.get('/comments', authenticateToken, async (req, res) => {
+    try {
+        const { startDate, endDate } = req.query;
+        
+        let whereClause = {};
+        
+        if (startDate && endDate) {
+            whereClause.creatAt = {
+                gte: new Date(startDate),
+                lte: new Date(endDate + 'T23:59:59')
+            };
+        }
+        
+        const comments = await prisma.comment.findMany({
+            where: whereClause,
+            include: {
+                user: {
+                    select: {
+                        name: true,
+                        email: true
+                    }
+                },
+                post: {
+                    select: {
+                        title: true
+                    }
+                }
+            },
+            orderBy: {
+                creatAt: 'desc'
+            }
+        });
+        
+        res.status(200).json(comments);
+    } catch (err) {
+        console.error('Erro ao buscar comentários:', err);
+        res.status(500).json({ error: 'Erro interno do servidor' });
+    }
+});
+
 postRoot.get("/recent", async (req, res) => {
     try {
         const latestPosts = await prisma.card.findMany({
