@@ -249,21 +249,10 @@ postRoot.get("/recentP", async (req, res) => {
 // Adicione esta rota no seu arquivo de rotas (post.js ou similar)
 
 // Rota para buscar comentários por período
-postRoot.get('/comments', authenticateToken, async (req, res) => {
+// Adicione esta rota para buscar todos os comentários
+postRoot.get('/comments/all', authenticateToken, async (req, res) => {
     try {
-        const { startDate, endDate } = req.query;
-        
-        let whereClause = {};
-        
-        if (startDate && endDate) {
-            whereClause.creatAt = {
-                gte: new Date(startDate),
-                lte: new Date(endDate + 'T23:59:59')
-            };
-        }
-        
         const comments = await prisma.comment.findMany({
-            where: whereClause,
             include: {
                 user: {
                     select: {
@@ -273,7 +262,8 @@ postRoot.get('/comments', authenticateToken, async (req, res) => {
                 },
                 post: {
                     select: {
-                        title: true
+                        title: true,
+                        public: true
                     }
                 }
             },
@@ -282,12 +272,147 @@ postRoot.get('/comments', authenticateToken, async (req, res) => {
             }
         });
         
-        res.status(200).json(comments);
+        // Filtrar apenas comentários de posts públicos
+        const publicComments = comments.filter(comment => comment.post.public);
+        
+        res.status(200).json(publicComments);
     } catch (err) {
         console.error('Erro ao buscar comentários:', err);
         res.status(500).json({ error: 'Erro interno do servidor' });
     }
 });
+
+// Rota para estatísticas de uso semanal (otimizada)
+postRoot.get('/analytics/weekly', authenticateToken, async (req, res) => {
+    try {
+        const { startDate, endDate } = req.query;
+        
+        if (!startDate || !endDate) {
+            return res.status(400).json({ error: 'Datas de início e fim são obrigatórias' });
+        }
+        
+        const start = new Date(startDate);
+        const end = new Date(endDate + 'T23:59:59');
+        
+        // Buscar dados de forma eficiente
+        const [users, posts, comments] = await Promise.all([
+            // Usuários criados no período
+            prisma.user.findMany({
+                where: {
+                    creatAt: {
+                        gte: start,
+                        lte: end
+                    }
+                },
+                select: {
+                    id: true,
+                    creatAt: true
+                }
+            }),
+            
+            // Posts públicos criados no período
+            prisma.card.findMany({
+                where: {
+                    public: true,
+                    creatAt: {
+                        gte: start,
+                        lte: end
+                    }
+                },
+                select: {
+                    id: true,
+                    creatAt: true,
+                    views: true
+                }
+            }),
+            
+            // Comentários de posts públicos no período
+            prisma.comment.findMany({
+                where: {
+                    creatAt: {
+                        gte: start,
+                        lte: end
+                    },
+                    post: {
+                        public: true
+                    }
+                },
+                select: {
+                    id: true,
+                    creatAt: true
+                }
+            })
+        ]);
+        
+        // Calcular totais
+        const totalUsers = users.length;
+        const totalPosts = posts.length;
+        const totalComments = comments.length;
+        const totalViews = posts.reduce((sum, post) => sum + (post.views || 0), 0);
+        
+        // Calcular dados diários
+        const dailyData = [];
+        const currentDate = new Date(start);
+        
+        while (currentDate <= end) {
+            const dateStr = formatDate(currentDate);
+            
+            const dayUsers = users.filter(user => 
+                isSameDay(new Date(user.creatAt), currentDate)
+            ).length;
+            
+            const dayPosts = posts.filter(post => 
+                isSameDay(new Date(post.creatAt), currentDate)
+            ).length;
+            
+            const dayComments = comments.filter(comment => 
+                isSameDay(new Date(comment.creatAt), currentDate)
+            ).length;
+            
+            const dayViews = posts.filter(post => 
+                isSameDay(new Date(post.creatAt), currentDate)
+            ).reduce((sum, post) => sum + (post.views || 0), 0);
+            
+            dailyData.push({
+                date: dateStr,
+                users: dayUsers,
+                posts: dayPosts,
+                comments: dayComments,
+                views: dayViews
+            });
+            
+            currentDate.setDate(currentDate.getDate() + 1);
+        }
+        
+        res.status(200).json({
+            totals: {
+                users: totalUsers,
+                posts: totalPosts,
+                comments: totalComments,
+                views: totalViews
+            },
+            dailyData
+        });
+        
+    } catch (err) {
+        console.error('Erro ao buscar analytics:', err);
+        res.status(500).json({ error: 'Erro interno do servidor' });
+    }
+});
+
+// Funções auxiliares
+function formatDate(date) {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+}
+
+function isSameDay(date1, date2) {
+    return date1.getFullYear() === date2.getFullYear() &&
+           date1.getMonth() === date2.getMonth() &&
+           date1.getDate() === date2.getDate();
+}
 
 postRoot.get("/recent", async (req, res) => {
     try {
