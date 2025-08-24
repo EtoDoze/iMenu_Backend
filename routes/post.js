@@ -283,6 +283,7 @@ postRoot.get('/comments/all', authenticateToken, async (req, res) => {
 });
 
 // Rota para estatísticas de uso semanal (otimizada)
+// No arquivo post.js, atualize a rota /analytics/weekly
 postRoot.get('/analytics/weekly', authenticateToken, async (req, res) => {
     try {
         const { startDate, endDate } = req.query;
@@ -291,7 +292,8 @@ postRoot.get('/analytics/weekly', authenticateToken, async (req, res) => {
             return res.status(400).json({ error: 'Datas de início e fim são obrigatórias' });
         }
         
-        const start = new Date(startDate);
+        // Ajustar as datas para incluir todo o período
+        const start = new Date(startDate + 'T00:00:00');
         const end = new Date(endDate + 'T23:59:59');
         
         // Buscar dados de forma eficiente
@@ -366,7 +368,7 @@ postRoot.get('/analytics/weekly', authenticateToken, async (req, res) => {
             ).length;
             
             const dayComments = comments.filter(comment => 
-                isSameDay(new Date(comment.creatAt), currentDate)
+                isSameDay(new Date(comment.createdAt), currentDate) // Corrigido para createdAt
             ).length;
             
             const dayViews = posts.filter(post => 
@@ -664,6 +666,7 @@ postRoot.put('/admin/posts/:id/visibility', authenticateToken, async (req, res) 
 // Adicione estas rotas ao seu postRoot.js
 
 // Rota para registrar uma visualização
+// Rota para registrar uma visualização - verifique se está funcionando
 postRoot.post('/posts/:id/view', async (req, res) => {
     try {
         const postId = parseInt(req.params.id);
