@@ -284,6 +284,7 @@ postRoot.get('/comments/all', authenticateToken, async (req, res) => {
 
 // Rota para estatísticas de uso semanal (otimizada)
 // No arquivo post.js, atualize a rota /analytics/weekly
+// No arquivo post.js, atualize a rota /analytics/weekly para corrigir o problema das visualizações
 postRoot.get('/analytics/weekly', authenticateToken, async (req, res) => {
     try {
         const { startDate, endDate } = req.query;
@@ -296,8 +297,8 @@ postRoot.get('/analytics/weekly', authenticateToken, async (req, res) => {
         const start = new Date(startDate + 'T00:00:00');
         const end = new Date(endDate + 'T23:59:59');
         
-        // Buscar dados de forma eficiente
-        const [users, posts, comments] = await Promise.all([
+        // Buscar dados de forma eficiente - CORREÇÃO PARA VISUALIZAÇÕES
+        const [users, posts, comments, allViews] = await Promise.all([
             // Usuários criados no período
             prisma.user.findMany({
                 where: {
@@ -323,8 +324,7 @@ postRoot.get('/analytics/weekly', authenticateToken, async (req, res) => {
                 },
                 select: {
                     id: true,
-                    creatAt: true,
-                    views: true
+                    creatAt: true
                 }
             }),
             
@@ -343,16 +343,33 @@ postRoot.get('/analytics/weekly', authenticateToken, async (req, res) => {
                     id: true,
                     createdAt: true
                 }
+            }),
+            
+            // TODAS as visualizações de posts públicos (independente de quando foram criados)
+            prisma.card.findMany({
+                where: {
+                    public: true,
+                    // Não filtrar por data de criação, mas sim por visualizações que ocorreram no período
+                    // Como não temos data de visualização, vamos considerar todos os posts públicos
+                },
+                select: {
+                    id: true,
+                    views: true,
+                    creatAt: true
+                }
             })
         ]);
         
-        // Calcular totais
+        // Calcular totais - CORREÇÃO PARA VISUALIZAÇÕES
         const totalUsers = users.length;
         const totalPosts = posts.length;
         const totalComments = comments.length;
-        const totalViews = posts.reduce((sum, post) => sum + (post.views || 0), 0);
         
-        // Calcular dados diários
+        // Para visualizações, somamos todas as views de posts públicos
+        // Isso é uma aproximação, já que não temos data específica de cada visualização
+        const totalViews = allViews.reduce((sum, post) => sum + (post.views || 0), 0);
+        
+        // Calcular dados diários - CORREÇÃO PARA VISUALIZAÇÕES
         const dailyData = [];
         const currentDate = new Date(start);
         
@@ -368,12 +385,13 @@ postRoot.get('/analytics/weekly', authenticateToken, async (req, res) => {
             ).length;
             
             const dayComments = comments.filter(comment => 
-                isSameDay(new Date(comment.createdAt), currentDate) // Corrigido para createdAt
+                isSameDay(new Date(comment.createdAt), currentDate)
             ).length;
             
-            const dayViews = posts.filter(post => 
-                isSameDay(new Date(post.creatAt), currentDate)
-            ).reduce((sum, post) => sum + (post.views || 0), 0);
+            // Para visualizações, vamos fazer uma aproximação:
+            // Distribuir as visualizações proporcionalmente pelos dias
+            // Esta é uma solução simplificada
+            const dayViews = Math.round(totalViews / (posts.length > 0 ? posts.length : 1)) * dayPosts;
             
             dailyData.push({
                 date: dateStr,
@@ -667,11 +685,27 @@ postRoot.put('/admin/posts/:id/visibility', authenticateToken, async (req, res) 
 
 // Rota para registrar uma visualização
 // Rota para registrar uma visualização - verifique se está funcionando
+// Rota para registrar uma visualização - versão melhorada
 postRoot.post('/posts/:id/view', async (req, res) => {
     try {
         const postId = parseInt(req.params.id);
         if (isNaN(postId)) {
             return res.status(400).json({ error: 'ID inválido' });
+        }
+
+        // Verificar se o post existe
+        const post = await prisma.card.findUnique({
+            where: { id: postId },
+            select: { id: true, public: true }
+        });
+
+        if (!post) {
+            return res.status(404).json({ error: 'Post não encontrado' });
+        }
+
+        // Só contar visualizações para posts públicos
+        if (!post.public) {
+            return res.status(200).json({ views: 0, message: 'Post privado, visualização não contabilizada' });
         }
 
         // Atualiza o contador de visualizações
@@ -687,7 +721,10 @@ postRoot.post('/posts/:id/view', async (req, res) => {
             }
         });
 
-        res.status(200).json({ views: updatedPost.views });
+        res.status(200).json({ 
+            views: updatedPost.views,
+            message: 'Visualização registrada com sucesso'
+        });
     } catch (err) {
         console.error('Erro ao registrar visualização:', err);
         res.status(500).json({ error: 'Erro interno do servidor' });
