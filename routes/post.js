@@ -268,7 +268,7 @@ postRoot.get('/comments/all', authenticateToken, async (req, res) => {
                 }
             },
             orderBy: {
-                creatAt: 'desc'
+                createdAt: 'desc'
             }
         });
         
@@ -329,7 +329,7 @@ postRoot.get('/analytics/weekly', authenticateToken, async (req, res) => {
             // Comentários de posts públicos no período
             prisma.comment.findMany({
                 where: {
-                    creatAt: {
+                    createdAt: {
                         gte: start,
                         lte: end
                     },
@@ -339,7 +339,7 @@ postRoot.get('/analytics/weekly', authenticateToken, async (req, res) => {
                 },
                 select: {
                     id: true,
-                    creatAt: true
+                    createdAt: true
                 }
             })
         ]);
