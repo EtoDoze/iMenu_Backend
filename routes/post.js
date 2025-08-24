@@ -295,8 +295,8 @@ postRoot.get('/analytics/weekly', authenticateToken, async (req, res) => {
         const start = new Date(startDate + 'T00:00:00');
         const end = new Date(endDate + 'T23:59:59');
         
-        // Buscar dados de forma eficiente - AGORA COM DATAS CORRETAS
-        const [users, posts, comments, views] = await Promise.all([
+        // Buscar dados
+        const [users, posts, comments, periodViews, allPosts] = await Promise.all([
             // Usuários criados no período
             prisma.user.findMany({
                 where: {
@@ -343,7 +343,7 @@ postRoot.get('/analytics/weekly', authenticateToken, async (req, res) => {
                 }
             }),
             
-            // Visualizações que ocorreram no período
+            // Visualizações que ocorreram no período (da tabela PostView)
             prisma.postView.findMany({
                 where: {
                     viewedAt: {
@@ -359,14 +359,25 @@ postRoot.get('/analytics/weekly', authenticateToken, async (req, res) => {
                     viewedAt: true,
                     postId: true
                 }
+            }),
+            
+            // Todos os posts para referência
+            prisma.card.findMany({
+                where: {
+                    public: true
+                },
+                select: {
+                    id: true,
+                    views: true
+                }
             })
         ]);
         
-        // Calcular totais - AGORA APENAS DO PERÍODO
+        // Calcular totais
         const totalUsers = users.length;
         const totalPosts = posts.length;
         const totalComments = comments.length;
-        const totalViews = views.length; // Agora são apenas as views do período
+        const totalViews = periodViews.length; // Apenas views do período
         
         // Calcular dados diários
         const dailyData = [];
@@ -387,7 +398,7 @@ postRoot.get('/analytics/weekly', authenticateToken, async (req, res) => {
                 isSameDay(new Date(comment.createdAt), currentDate)
             ).length;
             
-            const dayViews = views.filter(view => 
+            const dayViews = periodViews.filter(view => 
                 isSameDay(new Date(view.viewedAt), currentDate)
             ).length;
             
@@ -417,6 +428,7 @@ postRoot.get('/analytics/weekly', authenticateToken, async (req, res) => {
         res.status(500).json({ error: 'Erro interno do servidor' });
     }
 });
+
 // Funções auxiliares
 function formatDate(date) {
     const year = date.getFullYear();
@@ -691,14 +703,17 @@ postRoot.post('/posts/:id/view', async (req, res) => {
         // Verificar se o post existe
         const post = await prisma.card.findUnique({
             where: { id: postId },
-            select: { id: true, public: true }
+            select: { id: true, public: true, views: true }
         });
 
         if (!post || !post.public) {
-            return res.status(200).json({ views: 0, message: 'Post não encontrado ou privado' });
+            return res.status(200).json({ 
+                views: post?.views || 0, 
+                message: 'Post não encontrado ou privado' 
+            });
         }
 
-        // Registrar a visualização
+        // Registrar a visualização na tabela de rastreamento
         const ipAddress = req.ip || req.connection.remoteAddress;
         
         await prisma.postView.create({
@@ -708,21 +723,21 @@ postRoot.post('/posts/:id/view', async (req, res) => {
             }
         });
 
-        // Contar visualizações totais para este post
-        const totalViews = await prisma.postView.count({
-            where: { postId: postId }
-        });
-
-        // Atualizar o contador no post (opcional, para performance)
-        await prisma.card.update({
+        // ATUALIZAÇÃO IMPORTANTE: Incrementar o contador em vez de substituir
+        const updatedPost = await prisma.card.update({
             where: { id: postId },
             data: {
-                views: totalViews
+                views: {
+                    increment: 1 // Isso adiciona 1 ao valor existente
+                }
+            },
+            select: {
+                views: true
             }
         });
 
         res.status(200).json({ 
-            views: totalViews,
+            views: updatedPost.views,
             message: 'Visualização registrada com sucesso'
         });
     } catch (err) {
@@ -750,7 +765,10 @@ postRoot.get('/posts/:id/views', async (req, res) => {
             return res.status(404).json({ error: 'Post não encontrado' });
         }
 
-        res.status(200).json({ views: post.views || 0 });
+        res.status(200).json({ 
+            totalViews: post.views || 0, // Visualizações totais acumuladas
+            periodViews: 0 // Você pode adicionar lógica para views por período se necessário
+        });
     } catch (err) {
         console.error('Erro ao obter visualizações:', err);
         res.status(500).json({ error: 'Erro interno do servidor' });
