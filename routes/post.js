@@ -282,6 +282,40 @@ postRoot.get('/comments/all', authenticateToken, async (req, res) => {
     }
 });
 
+postRoot.get('/posts/:id/comments', authenticateToken, async (req, res) => {
+    try {
+        const postId = parseInt(req.params.id);
+        if (isNaN(postId)) {
+            return res.status(400).json({ error: 'ID inválido' });
+        }
+
+        const comments = await prisma.comment.findMany({
+            where: { 
+                postId: postId,
+                post: {
+                    public: true
+                }
+            },
+            include: {
+                user: {
+                    select: {
+                        name: true,
+                        email: true
+                    }
+                }
+            },
+            orderBy: {
+                createdAt: 'desc'
+            }
+        });
+
+        res.status(200).json(comments);
+    } catch (err) {
+        console.error('Erro ao buscar comentários:', err);
+        res.status(500).json({ error: 'Erro interno do servidor' });
+    }
+});
+
 // Rota para estatísticas de uso semanal (otimizada)
 postRoot.get('/analytics/weekly', authenticateToken, async (req, res) => {
     try {
@@ -425,6 +459,96 @@ postRoot.get('/analytics/weekly', authenticateToken, async (req, res) => {
         
     } catch (err) {
         console.error('Erro ao buscar analytics:', err);
+        res.status(500).json({ error: 'Erro interno do servidor' });
+    }
+});
+
+postRoot.get('/analytics/posts/:id/views', authenticateToken, async (req, res) => {
+    try {
+        const postId = parseInt(req.params.id);
+        if (isNaN(postId)) {
+            return res.status(400).json({ error: 'ID inválido' });
+        }
+
+        // Verificar se é admin
+        if (req.user.email !== "imenucompany12@gmail.com") {
+            return res.status(403).json({ error: "Acesso negado" });
+        }
+
+        // Obter data de 7 dias atrás
+        const sevenDaysAgo = new Date();
+        sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+        sevenDaysAgo.setHours(0, 0, 0, 0);
+
+        // Buscar visualizações dos últimos 7 dias
+        const dailyViews = await prisma.postView.groupBy({
+            by: ['viewedAt'],
+            where: {
+                postId: postId,
+                viewedAt: {
+                    gte: sevenDaysAgo
+                }
+            },
+            _count: {
+                id: true
+            }
+        });
+
+        // Formatar dados para resposta
+        const formattedData = dailyViews.map(item => ({
+            date: formatDate(item.viewedAt),
+            views: item._count.id
+        }));
+
+        res.status(200).json({ dailyViews: formattedData });
+    } catch (err) {
+        console.error('Erro ao buscar visualizações do post:', err);
+        res.status(500).json({ error: 'Erro interno do servidor' });
+    }
+});
+
+postRoot.delete('/admin/comments/:id', authenticateToken, async (req, res) => {
+    try {
+        const commentId = parseInt(req.params.id);
+        if (isNaN(commentId)) {
+            return res.status(400).json({ error: 'ID inválido' });
+        }
+
+        // Verificar se é admin
+        if (req.user.email !== "imenucompany12@gmail.com") {
+            return res.status(403).json({ error: "Acesso negado" });
+        }
+
+        await prisma.comment.delete({
+            where: { id: commentId }
+        });
+
+        res.status(200).json({ success: true });
+    } catch (err) {
+        console.error('Erro ao excluir comentário:', err);
+        res.status(500).json({ error: 'Erro interno do servidor' });
+    }
+});
+
+postRoot.delete('/comments/:id', authenticateToken, async (req, res) => {
+    try {
+        const commentId = parseInt(req.params.id);
+        if (isNaN(commentId)) {
+            return res.status(400).json({ error: 'ID inválido' });
+        }
+
+        // Verificar se é admin
+        if (req.user.email !== "imenucompany12@gmail.com") {
+            return res.status(403).json({ error: "Acesso negado" });
+        }
+
+        await prisma.comment.delete({
+            where: { id: commentId }
+        });
+
+        res.status(200).json({ success: true });
+    } catch (err) {
+        console.error('Erro ao excluir comentário:', err);
         res.status(500).json({ error: 'Erro interno do servidor' });
     }
 });
