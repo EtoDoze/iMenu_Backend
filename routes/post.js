@@ -330,7 +330,7 @@ postRoot.get('/analytics/weekly', authenticateToken, async (req, res) => {
         const end = new Date(endDate + 'T23:59:59');
         
         // Buscar dados
-        const [users, posts, comments, periodViews, allPosts] = await Promise.all([
+        const [users, posts, comments, periodViews, allPosts, topViewedPosts, topCommentedPosts] = await Promise.all([
             // Usuários criados no período
             prisma.user.findMany({
                 where: {
@@ -373,7 +373,8 @@ postRoot.get('/analytics/weekly', authenticateToken, async (req, res) => {
                 },
                 select: {
                     id: true,
-                    createdAt: true
+                    createdAt: true,
+                    postId: true
                 }
             }),
             
@@ -404,6 +405,62 @@ postRoot.get('/analytics/weekly', authenticateToken, async (req, res) => {
                     id: true,
                     views: true
                 }
+            }),
+            
+            // Posts mais visualizados no período
+            prisma.card.findMany({
+                where: {
+                    public: true,
+                    creatAt: {
+                        gte: start,
+                        lte: end
+                    }
+                },
+                include: {
+                    author: {
+                        select: {
+                            name: true
+                        }
+                    },
+                    _count: {
+                        select: {
+                            comments: true
+                        }
+                    }
+                },
+                orderBy: {
+                    views: 'desc'
+                },
+                take: 10
+            }),
+            
+            // Posts mais comentados no período
+            prisma.card.findMany({
+                where: {
+                    public: true,
+                    creatAt: {
+                        gte: start,
+                        lte: end
+                    }
+                },
+                include: {
+                    author: {
+                        select: {
+                            name: true
+                        }
+                    },
+                    _count: {
+                        select: {
+                            comments: true
+                        }
+                    }
+                },
+                orderBy: {
+                    comments: {
+                        _count: 'desc'
+                    }
+                },
+                take: 10
             })
         ]);
         
@@ -447,6 +504,24 @@ postRoot.get('/analytics/weekly', authenticateToken, async (req, res) => {
             currentDate.setDate(currentDate.getDate() + 1);
         }
         
+        // Processar posts mais visualizados para incluir contagem de comentários
+        const processedTopViewedPosts = topViewedPosts.map(post => ({
+            id: post.id,
+            title: post.title,
+            views: post.views,
+            commentCount: post._count.comments,
+            author: post.author
+        }));
+        
+        // Processar posts mais comentados para incluir contagem de visualizações
+        const processedTopCommentedPosts = topCommentedPosts.map(post => ({
+            id: post.id,
+            title: post.title,
+            views: post.views,
+            commentCount: post._count.comments,
+            author: post.author
+        }));
+        
         res.status(200).json({
             totals: {
                 users: totalUsers,
@@ -454,7 +529,9 @@ postRoot.get('/analytics/weekly', authenticateToken, async (req, res) => {
                 comments: totalComments,
                 views: totalViews
             },
-            dailyData
+            dailyData,
+            topViewedPosts: processedTopViewedPosts,
+            topCommentedPosts: processedTopCommentedPosts
         });
         
     } catch (err) {
