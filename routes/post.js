@@ -422,9 +422,10 @@ postRoot.get('/analytics/weekly', authenticateToken, async (req, res) => {
                             name: true
                         }
                     },
-                    _count: {
+                    // Verifique o nome correto da relação de comentários no seu schema
+                    comentario: {
                         select: {
-                            comments: true
+                            id: true
                         }
                     }
                 },
@@ -441,6 +442,15 @@ postRoot.get('/analytics/weekly', authenticateToken, async (req, res) => {
                     creatAt: {
                         gte: start,
                         lte: end
+                    },
+                    // Garantir que tenha pelo menos um comentário
+                    comentario: {
+                        some: {
+                            createdAt: {
+                                gte: start,
+                                lte: end
+                            }
+                        }
                     }
                 },
                 include: {
@@ -449,14 +459,16 @@ postRoot.get('/analytics/weekly', authenticateToken, async (req, res) => {
                             name: true
                         }
                     },
-                    _count: {
+                    // Verifique o nome correto da relação de comentários no seu schema
+                    comentario: {
                         select: {
-                            comments: true
+                            id: true
                         }
                     }
                 },
                 orderBy: {
-                    comments: {
+                    // Ordenar pela quantidade de comentários
+                    comentario: {
                         _count: 'desc'
                     }
                 },
@@ -504,21 +516,21 @@ postRoot.get('/analytics/weekly', authenticateToken, async (req, res) => {
             currentDate.setDate(currentDate.getDate() + 1);
         }
         
-        // Processar posts mais visualizados para incluir contagem de comentários
+        // Processar posts mais visualizados
         const processedTopViewedPosts = topViewedPosts.map(post => ({
             id: post.id,
             title: post.title,
             views: post.views,
-            commentCount: post._count.comments,
+            commentCount: post.comentario ? post.comentario.length : 0,
             author: post.author
         }));
         
-        // Processar posts mais comentados para incluir contagem de visualizações
+        // Processar posts mais comentados
         const processedTopCommentedPosts = topCommentedPosts.map(post => ({
             id: post.id,
             title: post.title,
             views: post.views,
-            commentCount: post._count.comments,
+            commentCount: post.comentario ? post.comentario.length : 0,
             author: post.author
         }));
         
