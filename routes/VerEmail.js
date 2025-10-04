@@ -29,47 +29,53 @@ async function sendVerificationEmail(email, token) {
 </div>
 `;
 
-    // 🔥 CORREÇÃO AQUI: createTransport (no singular)
+    // CONFIGURAÇÃO OTIMIZADA PARA RENDER.COM
     const transporter = nodemailer.createTransport({
-        service: 'gmail',
+        host: 'smtp.gmail.com',
+        port: 587,
+        secure: false, // true para 465, false para outros ports
         auth: {
             user: process.env.EMAIL_USER,
             pass: process.env.EMAIL_PASS
         },
-        connectionTimeout: 30000,
-        greetingTimeout: 30000,
-        socketTimeout: 30000,
-        retries: 3,
-        logger: true,
-        debug: true
+        // Configurações específicas para evitar timeout
+        connectionTimeout: 10000, // 10 segundos
+        greetingTimeout: 10000,
+        socketTimeout: 10000,
+        // Tentativas de reconexão
+        retryDelay: 1000,
+        // Pooling para conexões reutilizáveis
+        pool: true,
+        maxConnections: 1,
+        maxMessages: 5
     });
 
     try {
-        console.log('Tentando conectar ao servidor de email...');
+        console.log('🔄 Tentando conectar ao SMTP do Gmail...');
         
-        // Verificar conexão
+        // Verificação mais rápida da conexão
         await transporter.verify();
-        console.log('Servidor de email conectado com sucesso');
+        console.log('✅ Conexão SMTP verificada com sucesso');
         
-        // Enviar email
-        console.log(`Enviando email para: ${email}`);
+        console.log(`📤 Enviando email para: ${email}`);
         const info = await transporter.sendMail({
             from: `"iMenu" <${process.env.EMAIL_USER}>`,
             to: email,
             subject: "Verifique seu e-mail - iMenu",
             html: html,
+            // Prioridade alta
+            priority: 'high'
         });
         
         console.log(`✅ Email enviado com sucesso para ${email}:`, info.messageId);
         return true;
         
     } catch (error) {
-        console.error('❌ Erro ao enviar email:', error);
-        console.error('Detalhes do erro:', {
+        console.error('❌ Erro detalhado ao enviar email:', {
+            name: error.name,
             code: error.code,
             command: error.command,
-            response: error.response,
-            responseCode: error.responseCode
+            message: error.message
         });
         
         return false;
