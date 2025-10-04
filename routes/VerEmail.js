@@ -121,16 +121,20 @@ emailrouter.get("/verify-email", async (req, res) => {
 // Rota para gerar novo token e reenviar
 emailrouter.post("/verifyagain", async (req, res) => {
     try {
+        console.log("📧 Recebida solicitação para /verifyagain");
+        console.log("Corpo da requisição:", req.body);
+        
         const { email } = req.body;
         
         if (!email) {
+            console.log("❌ Email não fornecido");
             return res.status(400).json({ 
                 success: false,
                 error: "Email é obrigatório" 
             });
         }
 
-        console.log(`Solicitado reenvio de verificação para: ${email}`);
+        console.log(`🔍 Buscando usuário: ${email}`);
 
         // Buscar usuário
         const user = await prisma.user.findUnique({ 
@@ -138,6 +142,7 @@ emailrouter.post("/verifyagain", async (req, res) => {
         });
 
         if (!user) {
+            console.log("❌ Usuário não encontrado");
             return res.status(404).json({ 
                 success: false,
                 error: "Usuário não encontrado" 
@@ -145,23 +150,27 @@ emailrouter.post("/verifyagain", async (req, res) => {
         }
 
         if (user.EmailVer) {
+            console.log("ℹ️ Email já verificado");
             return res.status(400).json({ 
                 success: false,
                 error: "Email já verificado" 
             });
         }
 
-        console.log(`Reenviando email para usuário: ${user.id}`);
+        console.log(`🔄 Reenviando email para usuário: ${user.id}`);
+        console.log(`Token do usuário: ${user.EToken}`);
 
         // Tentar enviar email
         const emailEnviado = await sendVerificationEmail(user.email, user.EToken);
 
         if (emailEnviado) {
+            console.log("✅ Email enviado com sucesso");
             res.status(200).json({ 
                 success: true,
                 message: "E-mail de verificação reenviado com sucesso" 
             });
         } else {
+            console.log("❌ Falha no envio do email");
             res.status(500).json({ 
                 success: false,
                 error: "Falha ao enviar e-mail. Tente novamente mais tarde." 
@@ -169,7 +178,7 @@ emailrouter.post("/verifyagain", async (req, res) => {
         }
 
     } catch (err) {
-        console.error("Erro ao reenviar verificação:", err);
+        console.error("💥 Erro completo em /verifyagain:", err);
         res.status(500).json({ 
             success: false,
             error: "Erro interno do servidor",
