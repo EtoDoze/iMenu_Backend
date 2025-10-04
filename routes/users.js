@@ -19,65 +19,91 @@ const SECRET_KEY = process.env.SECRET_KEY;
 
 
 // Criar usuário
+// No backend, na rota /create, adicione tratamento melhor:
 userRouter.post('/create', async (req, res) => {
     try {
+        console.log("Dados recebidos:", req.body); // DEBUG
+        
         const { name, email, password, dono, foto, restaurante, telefone, estadoId, estadoNome, cidadeId, cidadeNome } = req.body;
 
+        // Validação mais robusta
         if (!name || !email || !password) {
             return res.status(400).json({ 
-                error: "Todos os campos são obrigatórios",
-                details: { name, email, password }
+                error: "Campos obrigatórios: nome, email e senha",
+                received: { name, email, password: password ? "***" : undefined }
             });
         }
 
-        const existingUser = await prisma.user.findUnique({ where: { email } });
-        if (existingUser) {
-            return res.status(400).json({ message: "E-mail já está em uso" });
+        // Validação de email
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(email)) {
+            return res.status(400).json({ error: "Email inválido" });
         }
 
+        // Verificar se usuário já existe
+        const existingUser = await prisma.user.findUnique({ 
+            where: { email } 
+        });
+        
+        if (existingUser) {
+            return res.status(400).json({ 
+                error: "Este email já está em uso",
+                message: "Email já cadastrado" 
+            });
+        }
+
+        // Hash da senha
         const hashedPassword = await bcrypt.hash(password, 10);
         const Etoken = crypto.randomBytes(32).toString("hex");
 
-    const user = await prisma.user.create({
-  data: { 
-    name, 
-    email, 
-    password: hashedPassword, 
-    dono, 
-    restaurante: dono ? restaurante : null,
-    telefone: telefone || null,
-    estadoId: estadoId || null,
-    estadoNome: estadoNome || null,
-    cidadeId: cidadeId || null,
-    cidadeNome: cidadeNome || null,
-    EToken: Etoken,
-    EmailVer: false,
-    foto: foto || 'images/perfil.png'
-  },
-});
+        // Criar usuário
+        const user = await prisma.user.create({
+            data: { 
+                name: name.trim(),
+                email: email.toLowerCase().trim(),
+                password: hashedPassword, 
+                dono: Boolean(dono),
+                restaurante: dono ? (restaurante || null) : null,
+                telefone: telefone || null,
+                estadoId: estadoId || null,
+                estadoNome: estadoNome || null,
+                cidadeId: cidadeId || null,
+                cidadeNome: cidadeNome || null,
+                EToken: Etoken,
+                EmailVer: false,
+                foto: foto || 'images/perfil.png'
+            },
+        });
 
+        console.log("Usuário criado:", user.id); // DEBUG
 
+        // Tentar enviar email (mas não falhar se der erro)
+        try {
+            await sendVerificationEmail(email, Etoken);
+            console.log("Email enviado para:", email);
+        } catch (emailError) {
+            console.error("Erro ao enviar email:", emailError);
+            // Não falha a criação se o email falhar
+        }
 
-await sendVerificationEmail(email, Etoken);
-res.status(201).json({ 
-    message: "Usuário criado com sucesso. Por favor verifique seu e-mail.",
+        res.status(201).json({ 
+            success: true,
+            message: "Usuário criado com sucesso! Verifique seu email para ativar a conta.",
             user: {
                 id: user.id,
                 name: user.name,
                 email: user.email,
-                dono: user.dono,
-                restaurante: user.restaurante,
-                telefone: user.telefone,
-                estadoNome: user.estadoNome,
-                cidadeNome: user.cidadeNome
+                dono: user.dono
             }
         });
 
     } catch (err) {
-        console.error("Erro ao criar usuário:", err);
+        console.error("Erro detalhado ao criar usuário:", err);
         res.status(500).json({ 
-            message: "Erro ao criar usuário", 
-            error: err.message 
+            success: false,
+            error: "Erro interno do servidor",
+            message: "Não foi possível criar o usuário. Tente novamente.",
+            details: process.env.NODE_ENV === 'development' ? err.message : undefined
         });
     }
 });
