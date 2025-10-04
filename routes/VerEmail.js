@@ -1,7 +1,5 @@
 import express from "express";
 import { PrismaClient } from "@prisma/client";
-import bcrypt from "bcryptjs";
-import crypto from "crypto";
 import nodemailer from "nodemailer";
 import dotenv from "dotenv";
 
@@ -11,7 +9,7 @@ const emailrouter = express.Router();
 const prisma = new PrismaClient();
 emailrouter.use(express.json());
 
-// Função para enviar o e-mail de verificação (mantida localmente)
+// Função para enviar o e-mail de verificação
 async function sendVerificationEmail(email, token) {
     const link = `https://imenu-backend-pd3a.onrender.com/verify-email?token=${token}`;
 
@@ -31,20 +29,17 @@ async function sendVerificationEmail(email, token) {
 </div>
 `;
 
-    // Configuração mais robusta para Gmail
-    const transporter = nodemailer.createTransporter({
+    // 🔥 CORREÇÃO AQUI: createTransport (no singular)
+    const transporter = nodemailer.createTransport({
         service: 'gmail',
         auth: {
             user: process.env.EMAIL_USER,
-            pass: process.env.EMAIL_PASS // Use App Password, não a senha normal
+            pass: process.env.EMAIL_PASS
         },
-        // Configurações de timeout
-        connectionTimeout: 30000, // 30 segundos
+        connectionTimeout: 30000,
         greetingTimeout: 30000,
         socketTimeout: 30000,
-        // Tentar reconexão
         retries: 3,
-        // Logger para debug
         logger: true,
         debug: true
     });
@@ -61,7 +56,7 @@ async function sendVerificationEmail(email, token) {
         const info = await transporter.sendMail({
             from: `"iMenu" <${process.env.EMAIL_USER}>`,
             to: email,
-            subject: "Verifique seu e-mail",
+            subject: "Verifique seu e-mail - iMenu",
             html: html,
         });
         
@@ -77,7 +72,6 @@ async function sendVerificationEmail(email, token) {
             responseCode: error.responseCode
         });
         
-        // Não lance o erro, apenas retorne false
         return false;
     }
 }
@@ -111,14 +105,33 @@ emailrouter.get("/verify-email", async (req, res) => {
         });
 
         console.log("E-mail verificado com sucesso para o usuário:", user.id);
-        res.send("E-mail verificado com sucesso!");
+        res.send(`
+            <html>
+                <head>
+                    <title>Email Verificado - iMenu</title>
+                    <style>
+                        body { font-family: Arial, sans-serif; text-align: center; padding: 50px; background: #f5f5f5; }
+                        .success { background: white; padding: 30px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+                        h1 { color: #4CAF50; }
+                        a { display: inline-block; margin-top: 20px; padding: 10px 20px; background: #4CAF50; color: white; text-decoration: none; border-radius: 5px; }
+                    </style>
+                </head>
+                <body>
+                    <div class="success">
+                        <h1>✅ Email Verificado com Sucesso!</h1>
+                        <p>Seu email foi verificado com sucesso. Agora você pode fazer login no iMenu.</p>
+                        <a href="https://www.imenucorp.shop/login.html">Fazer Login</a>
+                    </div>
+                </body>
+            </html>
+        `);
     } catch (err) {
         console.error("Erro ao verificar e-mail:", err);
         res.status(500).json({ error: "Erro ao verificar e-mail" });
     }
 });
 
-// Rota para gerar novo token e reenviar
+// Rota para reenviar verificação
 emailrouter.post("/verifyagain", async (req, res) => {
     try {
         console.log("📧 Recebida solicitação para /verifyagain");
@@ -167,7 +180,7 @@ emailrouter.post("/verifyagain", async (req, res) => {
             console.log("✅ Email enviado com sucesso");
             res.status(200).json({ 
                 success: true,
-                message: "E-mail de verificação reenviado com sucesso" 
+                message: "E-mail de verificação reenviado com sucesso!" 
             });
         } else {
             console.log("❌ Falha no envio do email");
@@ -184,33 +197,6 @@ emailrouter.post("/verifyagain", async (req, res) => {
             error: "Erro interno do servidor",
             details: process.env.NODE_ENV === 'development' ? err.message : undefined
         });
-    }
-});
-
-// Rota para reenviar verificação (sem gerar novo token)
-emailrouter.post("/reenviar-verificacao", async (req, res) => {
-    try {
-        const { email } = req.body;
-        const user = await prisma.user.findUnique({ where: { email } });
-
-        if (!user) {
-            return res.status(404).json({ message: "Usuário não encontrado" });
-        }
-
-        if (user.EmailVer) {
-            return res.status(400).json({ message: "E-mail já verificado" });
-        }
-
-        const emailEnviado = await sendVerificationEmail(user.email, user.EToken);
-        
-        if (emailEnviado) {
-            res.status(200).json({ message: "E-mail de verificação reenviado com sucesso" });
-        } else {
-            res.status(500).json({ message: "Falha ao enviar e-mail de verificação" });
-        }
-    } catch (err) {
-        console.error("Erro ao reenviar e-mail:", err);
-        res.status(500).json({ message: "Erro ao reenviar e-mail", error: err.message });
     }
 });
 
