@@ -77,9 +77,9 @@ userRouter.post('/create', async (req, res) => {
 
         console.log("Usuário criado:", user.id); // DEBUG
 
-   setTimeout(async () => {
-            try {
-                const emailEnviado = await sendVerificationEmail(email, Etoken);
+
+        try {
+            const emailEnviado = await sendVerificationEmail(email, Etoken);
                 if (emailEnviado) {
                     console.log("✅ Email de verificação enviado para:", email);
                 } else {
@@ -89,7 +89,6 @@ userRouter.post('/create', async (req, res) => {
             } catch (emailError) {
                 console.error("Erro no envio de email assíncrono:", emailError);
             }
-        }, 1000);
 
         res.status(201).json({ 
             success: true,

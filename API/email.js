@@ -4,7 +4,7 @@ dotenv.config();
 
 export async function sendVerificationEmail(email, token) {
     // Configuração mais robusta para Gmail
-    const transporter = nodemailer.createTransporter({
+    const transporter = nodemailer.createTransport({
         service: 'gmail',
         auth: {
             user: process.env.EMAIL_USER,
