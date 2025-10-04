@@ -4,6 +4,8 @@ import bcrypt from "bcryptjs";
 import crypto from "crypto";
 import nodemailer from "nodemailer";
 import dotenv from "dotenv";
+import sendVerificationEmail from "../API/email.js";
+
 
 dotenv.config();
 

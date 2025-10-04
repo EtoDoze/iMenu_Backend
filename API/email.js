@@ -1,28 +1,24 @@
-// API/email.js - Implementação básica usando Nodemailer
 import nodemailer from 'nodemailer';
 import dotenv from 'dotenv';
 dotenv.config();
 
-// No arquivo API/email.js, atualize o transporte:
-
 export async function sendVerificationEmail(email, token) {
+    // Configuração mais robusta para Gmail
     const transporter = nodemailer.createTransporter({
-        host: process.env.EMAIL_HOST || 'smtp.gmail.com',
-        port: Number(process.env.EMAIL_PORT) || 587,
-        secure: false,
+        service: 'gmail',
         auth: {
             user: process.env.EMAIL_USER,
-            pass: process.env.EMAIL_PASS
+            pass: process.env.EMAIL_PASS // Use App Password, não a senha normal
         },
-        // Configurações importantes para evitar timeout
-        connectionTimeout: 10000, // 10 segundos
-        greetingTimeout: 10000,
-        socketTimeout: 10000,
-        // Para Gmail específico
-        service: 'gmail',
-        tls: {
-            rejectUnauthorized: false
-        }
+        // Configurações de timeout
+        connectionTimeout: 30000, // 30 segundos
+        greetingTimeout: 30000,
+        socketTimeout: 30000,
+        // Tentar reconexão
+        retries: 3,
+        // Logger para debug
+        logger: true,
+        debug: true
     });
 
     const verificationUrl = `https://imenu-backend-pd3a.onrender.com/verify-email?token=${token}`;
@@ -48,19 +44,30 @@ export async function sendVerificationEmail(email, token) {
     };
 
     try {
-        // Verificar conexão primeiro
+        console.log('Tentando conectar ao servidor de email...');
+        
+        // Verificar conexão
         await transporter.verify();
-        console.log('Servidor de email pronto');
+        console.log('Servidor de email conectado com sucesso');
         
         // Enviar email
+        console.log(`Enviando email para: ${email}`);
         const info = await transporter.sendMail(mailOptions);
-        console.log(`Email enviado para ${email}:`, info.messageId);
+        console.log(`✅ Email enviado com sucesso para ${email}:`, info.messageId);
         return true;
+        
     } catch (error) {
-        console.error('Erro ao enviar email:', error);
-        // Não lance o erro, apenas registre
+        console.error('❌ Erro ao enviar email:', error);
+        console.error('Detalhes do erro:', {
+            code: error.code,
+            command: error.command,
+            response: error.response,
+            responseCode: error.responseCode
+        });
+        
+        // Não lance o erro, apenas retorne false
         return false;
     }
 }
 
-export default sendVerificationEmail
+export default sendVerificationEmail;
