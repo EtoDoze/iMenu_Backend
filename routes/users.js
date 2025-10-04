@@ -77,14 +77,19 @@ userRouter.post('/create', async (req, res) => {
 
         console.log("Usuário criado:", user.id); // DEBUG
 
-        // Tentar enviar email (mas não falhar se der erro)
-        try {
-            await sendVerificationEmail(email, Etoken);
-            console.log("Email enviado para:", email);
-        } catch (emailError) {
-            console.error("Erro ao enviar email:", emailError);
-            // Não falha a criação se o email falhar
-        }
+   setTimeout(async () => {
+            try {
+                const emailEnviado = await sendVerificationEmail(email, Etoken);
+                if (emailEnviado) {
+                    console.log("✅ Email de verificação enviado para:", email);
+                } else {
+                    console.log("❌ Falha ao enviar email para:", email);
+                    // Você pode registrar isso para enviar depois
+                }
+            } catch (emailError) {
+                console.error("Erro no envio de email assíncrono:", emailError);
+            }
+        }, 1000);
 
         res.status(201).json({ 
             success: true,
