@@ -51,22 +51,64 @@ emailrouter.get("/verify-email", async (req, res) => {
 
 // Rota para gerar novo token e reenviar
 emailrouter.post("/verifyagain", async (req, res) => {
-  try {
-    const { email } = req.body;
-    const Etoken = crypto.randomBytes(32).toString("hex");
+    try {
+        const { email } = req.body;
+        
+        if (!email) {
+            return res.status(400).json({ 
+                success: false,
+                error: "Email é obrigatório" 
+            });
+        }
 
-    const user = await prisma.user.update({
-      where: { email },
-      data: { EToken: Etoken },
-    });
+        console.log(`Solicitado reenvio de verificação para: ${email}`);
 
-    await sendVerificationEmail(email, Etoken);
-    res.status(200).json({ message: "Novo e-mail de verificação enviado" });
-  } catch (err) {
-    console.error("Erro ao reenviar verificação:", err);
-    res.status(500).json({ error: "Erro ao reenviar verificação" });
-  }
+        // Buscar usuário
+        const user = await prisma.user.findUnique({ 
+            where: { email } 
+        });
+
+        if (!user) {
+            return res.status(404).json({ 
+                success: false,
+                error: "Usuário não encontrado" 
+            });
+        }
+
+        if (user.EmailVer) {
+            return res.status(400).json({ 
+                success: false,
+                error: "Email já verificado" 
+            });
+        }
+
+        console.log(`Reenviando email para usuário: ${user.id}`);
+
+        // Tentar enviar email
+        const emailEnviado = await sendVerificationEmail(user.email, user.EToken);
+
+        if (emailEnviado) {
+            res.status(200).json({ 
+                success: true,
+                message: "E-mail de verificação reenviado com sucesso" 
+            });
+        } else {
+            res.status(500).json({ 
+                success: false,
+                error: "Falha ao enviar e-mail. Tente novamente mais tarde." 
+            });
+        }
+
+    } catch (err) {
+        console.error("Erro ao reenviar verificação:", err);
+        res.status(500).json({ 
+            success: false,
+            error: "Erro interno do servidor",
+            details: process.env.NODE_ENV === 'development' ? err.message : undefined
+        });
+    }
 });
+
 
 // Rota para reenviar verificação (sem gerar novo token)
 emailrouter.post("/reenviar-verificacao", async (req, res) => {
