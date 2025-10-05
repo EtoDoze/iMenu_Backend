@@ -53,7 +53,6 @@ userRouter.post('/create', async (req, res) => {
         }
 
         // Hash da senha
-        // Hash da senha
         const hashedPassword = await bcrypt.hash(password, 10);
         const Etoken = crypto.randomBytes(32).toString("hex");
 
@@ -76,26 +75,25 @@ userRouter.post('/create', async (req, res) => {
             },
         });
 
-        console.log("Usuário criado:", user.id);
+        console.log("✅ USUÁRIO CRIADO:", user.id);
 
-        // 🔥 ENVIO DE EMAIL ASSÍNCRONO E ROBUSTO
-        (async () => {
+        // 🔥 ENVIO DE EMAIL ASSÍNCRONO E À PROVA DE FALHAS
+        setTimeout(async () => {
             try {
-                console.log(`📧 Tentando enviar email de verificação para: ${email}`);
+                console.log(`📧 TENTANDO ENVIAR EMAIL PARA: ${email}`);
                 const emailEnviado = await sendVerificationEmail(email, Etoken);
                 
                 if (emailEnviado) {
-                    console.log("✅ Email de verificação ENVIADO com sucesso para:", email);
+                    console.log("🎉 Email processado com sucesso para:", email);
                 } else {
-                    console.log("⚠️ Email NÃO enviado para:", email, "- Mas o usuário foi criado");
-                    // O usuário pode solicitar reenvio depois
+                    console.log("⚠️  Email não enviado, mas usuário criado:", email);
                 }
             } catch (emailError) {
-                console.error("❌ Erro no envio de email:", emailError.message);
-                // Não afeta a criação do usuário
+                console.log("🛡️  Erro no email ignorado - sistema continua:", emailError.message);
             }
-        })(); // IIFE - executa imediatamente de forma assíncrona
+        }, 1000); // Delay de 1 segundo
 
+        // SEMPRE RETORNE SUCESSO PARA O FRONTEND
         res.status(201).json({ 
             success: true,
             message: "Usuário criado com sucesso! Verifique seu email para ativar a conta.",
@@ -108,7 +106,7 @@ userRouter.post('/create', async (req, res) => {
         });
 
     } catch (err) {
-        console.error("Erro ao criar usuário:", err);
+        console.error("❌ Erro ao criar usuário:", err);
         res.status(500).json({ 
             success: false,
             error: "Erro interno do servidor",
