@@ -22,19 +22,17 @@ const SECRET_KEY = process.env.SECRET_KEY;
 // No backend, na rota /create, adicione tratamento melhor:
 userRouter.post('/create', async (req, res) => {
     try {
-        console.log("Dados recebidos:", req.body); // DEBUG
+        console.log("Dados recebidos:", req.body);
         
         const { name, email, password, dono, foto, restaurante, telefone, estadoId, estadoNome, cidadeId, cidadeNome } = req.body;
 
-        // Validação mais robusta
+        // Validações (mantenha as existentes)
         if (!name || !email || !password) {
             return res.status(400).json({ 
-                error: "Campos obrigatórios: nome, email e senha",
-                received: { name, email, password: password ? "***" : undefined }
+                error: "Campos obrigatórios: nome, email e senha"
             });
         }
 
-        // Validação de email
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
         if (!emailRegex.test(email)) {
             return res.status(400).json({ error: "Email inválido" });
@@ -47,8 +45,7 @@ userRouter.post('/create', async (req, res) => {
         
         if (existingUser) {
             return res.status(400).json({ 
-                error: "Este email já está em uso",
-                message: "Email já cadastrado" 
+                error: "Este email já está em uso"
             });
         }
 
@@ -56,7 +53,8 @@ userRouter.post('/create', async (req, res) => {
         const hashedPassword = await bcrypt.hash(password, 10);
         const Etoken = crypto.randomBytes(32).toString("hex");
 
-        // Criar usuário
+        // ✅ VERIFICAÇÃO SIMPLIFICADA - ATIVA DIRETO PARA TESTES
+        const EmailVer = false; // Mude para true durante testes
         const user = await prisma.user.create({
             data: { 
                 name: name.trim(),
@@ -70,33 +68,34 @@ userRouter.post('/create', async (req, res) => {
                 cidadeId: cidadeId || null,
                 cidadeNome: cidadeNome || null,
                 EToken: Etoken,
-                EmailVer: false,
+                EmailVer: EmailVer, // ✅ MUDE PARA true SE QUISER PULAR VERIFICAÇÃO
                 foto: foto || 'images/perfil.png'
             },
         });
 
         console.log("✅ USUÁRIO CRIADO:", user.id);
 
-        // 🔥 ENVIO DE EMAIL ASSÍNCRONO E À PROVA DE FALHAS
-        setTimeout(async () => {
-            try {
-                console.log(`📧 TENTANDO ENVIAR EMAIL PARA: ${email}`);
-                const emailEnviado = await sendVerificationEmail(email, Etoken);
-                
-                if (emailEnviado) {
-                    console.log("🎉 Email processado com sucesso para:", email);
-                } else {
-                    console.log("⚠️  Email não enviado, mas usuário criado:", email);
-                }
-            } catch (emailError) {
-                console.log("🛡️  Erro no email ignorado - sistema continua:", emailError.message);
+        // 🔥 TENTATIVA DE EMAIL (MAS NÃO BLOQUEIA)
+        try {
+            console.log(`📧 TENTANDO ENVIAR EMAIL PARA: ${email}`);
+            const emailEnviado = await sendVerificationEmail(email, Etoken);
+            
+            if (emailEnviado) {
+                console.log("🎉 Email enviado com sucesso para:", email);
+            } else {
+                console.log("⚠️  Email não enviado (serviço indisponível):", email);
             }
-        }, 1000); // Delay de 1 segundo
+        } catch (emailError) {
+            console.log("🛡️  Erro no email ignorado:", emailError.message);
+        }
 
-        // SEMPRE RETORNE SUCESSO PARA O FRONTEND
+        // ✅ SEMPRE RETORNE SUCESSO MESMO SE EMAIL FALHAR
         res.status(201).json({ 
             success: true,
-            message: "Usuário criado com sucesso! Verifique seu email para ativar a conta.",
+            message: EmailVer 
+                ? "Cadastro realizado com sucesso! Você já pode fazer login." 
+                : "Cadastro realizado! Verifique seu email para ativar a conta.",
+            needsVerification: !EmailVer,
             user: {
                 id: user.id,
                 name: user.name,
@@ -109,12 +108,10 @@ userRouter.post('/create', async (req, res) => {
         console.error("❌ Erro ao criar usuário:", err);
         res.status(500).json({ 
             success: false,
-            error: "Erro interno do servidor",
-            message: "Não foi possível criar o usuário. Tente novamente."
+            error: "Erro interno do servidor"
         });
     }
 });
-
 
 // Atualizar usuário
 // Atualizar usuário - Rota corrigida

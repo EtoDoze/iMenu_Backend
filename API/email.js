@@ -4,27 +4,23 @@ dotenv.config();
 
 // FUNÇÃO SIMPLES E DIRETA
 export async function sendVerificationEmail(email, token) {
-    console.log('🎯 INICIANDO ENVIO DE EMAIL PARA:', email);
+    console.log('🎯 TENTANDO ENVIAR EMAIL PARA:', email);
     
-    // VERIFICAÇÃO DAS VARIÁVEIS
-    console.log('🔍 Verificando variáveis de ambiente:');
-    console.log('   EMAIL_USER:', process.env.EMAIL_USER || '❌ NÃO CONFIGURADO');
-    console.log('   EMAIL_PASS:', process.env.EMAIL_PASS ? '✅ Configurado' : '❌ NÃO CONFIGURADO');
-
-    // SE AS VARIÁVEIS NÃO ESTIVEREM CONFIGURADAS, RETORNE TRUE PARA O SISTEMA CONTINUAR
-    if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
-        console.log('⚠️  Variáveis não configuradas - sistema continuará normalmente');
-        console.log('🔗 Link de verificação que seria enviado:');
+    // VERIFICAÇÃO DETALHADA
+    const hasEmailConfig = process.env.EMAIL_USER && process.env.EMAIL_PASS;
+    
+    if (!hasEmailConfig) {
+        console.log('❌ CONFIGURAÇÃO DE EMAIL NÃO ENCONTRADA');
+        console.log('🔗 Link de verificação para teste:');
         console.log(`   https://imenu-backend-pd3a.onrender.com/verify-email?token=${token}`);
-        return true; // ⚠️ IMPORTANTE: Retorne TRUE para o sistema continuar
+        
+        // ✅ RETORNE FALSE PARA INDICAR QUE NÃO FOI ENVIADO
+        return false;
     }
 
     const verificationUrl = `https://imenu-backend-pd3a.onrender.com/verify-email?token=${token}`;
     
-    console.log('📧 Preparando email com link:', verificationUrl);
-
     try {
-        // CONFIGURAÇÃO SIMPLES
         const transporter = nodemailer.createTransport({
             service: 'gmail',
             auth: {
@@ -49,6 +45,9 @@ export async function sendVerificationEmail(email, token) {
                         </a>
                     </div>
                     <p>Ou copie este link: ${verificationUrl}</p>
+                    <p style="color: #666; font-size: 12px; margin-top: 20px;">
+                        Se você não criou esta conta, ignore este email.
+                    </p>
                 </div>
             `
         };
@@ -62,12 +61,8 @@ export async function sendVerificationEmail(email, token) {
 
     } catch (error) {
         console.error('❌ ERRO AO ENVIAR EMAIL:', error.message);
-        console.log('🔗 Link de verificação (para uso manual):', verificationUrl);
-        
-        // ⚠️ IMPORTANTE: SEMPRE RETORNE TRUE MESMO COM ERRO
-        // Isso permite que o usuário seja criado e peça reenvio depois
-        return true;
+        console.log('🔗 Link para verificação manual:', verificationUrl);
+        return false;
     }
 }
-
 export default sendVerificationEmail;
