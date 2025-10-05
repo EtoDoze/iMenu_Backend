@@ -1,5 +1,5 @@
 import Express from 'express';
-import { PrismaClient } from "@prisma/client"
+import { PrismaClient } from "@prisma/client";
 import userRouter from './routes/users.js';
 import admRouter from './routes/admin.js';
 import emailrouter from './routes/VerEmail.js';
@@ -13,11 +13,16 @@ import authenticateToken from './routes/auth.js';
 
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
-const prisma = new PrismaClient;
-const app = Express();
 import dotenv from 'dotenv';
+
+// ✅ CARREGAR .env PRIMEIRO
 dotenv.config();
 
+console.log('🔍 Variáveis carregadas:');
+console.log('EMAIL_USER:', process.env.EMAIL_USER || 'Não configurado');
+
+const prisma = new PrismaClient;
+const app = Express();
 app.use(userRouter)
 app.use(commentRouter)
 app.use(admRouter)

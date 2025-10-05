@@ -10,7 +10,7 @@ userRouter.use(cors())
 import crypto from 'crypto';
 import bcrypt from 'bcryptjs';
 import authenticateToken from './auth.js';  // ES Module
-import sendVerificationEmail from "../API/email.mjs"; // Função de envio de email
+import sendVerificationEmail from "../API/email.js"; // Função de envio de email
 
 import jwt from 'jsonwebtoken';
 import dotenv from 'dotenv';
