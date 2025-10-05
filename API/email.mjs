@@ -1,6 +1,21 @@
 import nodemailer from 'nodemailer';
 import dotenv from 'dotenv';
-dotenv.config();
+import { fileURLToPath } from 'url'; // ✅ FALTANDO ESTA IMPORT
+import { dirname, join } from 'path';
+
+// ✅ OBTER CAMINHO CORRETO PARA O .env
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+
+// ⬆️ SUBIR 1 NÍVEL na pasta (ajuste conforme sua estrutura)
+const envPath = join(__dirname, '..', '.env'); 
+
+console.log('📁 Procurando .env em:', envPath);
+dotenv.config({ path: envPath });
+
+console.log('🔍 Variáveis carregadas:');
+console.log('EMAIL_USER:', process.env.EMAIL_USER || '❌ Não configurado');
+console.log('EMAIL_PASS:', process.env.EMAIL_PASS ? '✅ Configurado' : '❌ Não configurado');
 
 // FUNÇÃO SIMPLES E DIRETA
 export async function sendVerificationEmail(email, token) {
@@ -14,7 +29,6 @@ export async function sendVerificationEmail(email, token) {
         console.log('🔗 Link de verificação para teste:');
         console.log(`   https://imenu-backend-pd3a.onrender.com/verify-email?token=${token}`);
         
-        // ✅ RETORNE FALSE PARA INDICAR QUE NÃO FOI ENVIADO
         return false;
     }
 
@@ -65,4 +79,5 @@ export async function sendVerificationEmail(email, token) {
         return false;
     }
 }
+
 export default sendVerificationEmail;
