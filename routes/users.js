@@ -22,6 +22,12 @@ const SECRET_KEY = process.env.SECRET_KEY;
 // No backend, na rota /create, adicione tratamento melhor:
 userRouter.post('/create', async (req, res) => {
     try {
+        console.log("=== 🎯 DEBUG EMAIL ===");
+        console.log("EMAIL_USER no servidor:", process.env.EMAIL_USER || "❌ NÃO CONFIGURADO");
+        console.log("EMAIL_PASS no servidor:", process.env.EMAIL_PASS ? "✅ CONFIGURADO" : "❌ NÃO CONFIGURADO");
+        console.log("Todas variáveis EMAIL*:", Object.keys(process.env).filter(k => k.includes('EMAIL')));
+        console.log("======================");
+
         console.log("Dados recebidos:", req.body);
         
         const { name, email, password, dono, foto, restaurante, telefone, estadoId, estadoNome, cidadeId, cidadeNome } = req.body;

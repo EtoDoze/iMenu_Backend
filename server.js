@@ -10,6 +10,7 @@ import locrouter from './routes/location.js';
 import commentRouter from './routes/commentsRouter.js';
 import cors from 'cors';
 import authenticateToken from './routes/auth.js';
+import testRouter from './routes/test-email.js';
 
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
@@ -24,6 +25,7 @@ console.log('EMAIL_USER:', process.env.EMAIL_USER || 'Não configurado');
 const prisma = new PrismaClient;
 const app = Express();
 app.use(userRouter)
+app.use(testRouter)
 app.use(commentRouter)
 app.use(admRouter)
 app.use(emailrouter)
