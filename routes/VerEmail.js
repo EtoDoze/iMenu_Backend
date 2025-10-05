@@ -1,6 +1,6 @@
 import express from "express";
 import { PrismaClient } from "@prisma/client";
-import sendVerificationEmail from "./email.js"; // ✅ IMPORTE CORRETO
+import sendVerificationEmail from "../API/email.js"; // ✅ IMPORTE CORRETO
 
 const emailrouter = express.Router();
 const prisma = new PrismaClient();
