@@ -13,6 +13,8 @@ EmailRoter.post("emailsen", async (req,res) =>{
   VerEmail(email)
 })
 
+
+
 EmailRoter.post("emailver", async (req,res) =>{
   try{
     const {email, codeemaildigited} = req.body;
