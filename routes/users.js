@@ -53,6 +53,7 @@ userRouter.post('/create', async (req, res) => {
         }
 
         // Hash da senha
+        // Hash da senha
         const hashedPassword = await bcrypt.hash(password, 10);
         const Etoken = crypto.randomBytes(32).toString("hex");
 
@@ -75,20 +76,25 @@ userRouter.post('/create', async (req, res) => {
             },
         });
 
-        console.log("Usuário criado:", user.id); // DEBUG
+        console.log("Usuário criado:", user.id);
 
-
-        try {
-            const emailEnviado = await sendVerificationEmail(email, Etoken);
+        // 🔥 ENVIO DE EMAIL ASSÍNCRONO E ROBUSTO
+        (async () => {
+            try {
+                console.log(`📧 Tentando enviar email de verificação para: ${email}`);
+                const emailEnviado = await sendVerificationEmail(email, Etoken);
+                
                 if (emailEnviado) {
-                    console.log("✅ Email de verificação enviado para:", email);
+                    console.log("✅ Email de verificação ENVIADO com sucesso para:", email);
                 } else {
-                    console.log("❌ Falha ao enviar email para:", email);
-                    // Você pode registrar isso para enviar depois
+                    console.log("⚠️ Email NÃO enviado para:", email, "- Mas o usuário foi criado");
+                    // O usuário pode solicitar reenvio depois
                 }
             } catch (emailError) {
-                console.error("Erro no envio de email assíncrono:", emailError);
+                console.error("❌ Erro no envio de email:", emailError.message);
+                // Não afeta a criação do usuário
             }
+        })(); // IIFE - executa imediatamente de forma assíncrona
 
         res.status(201).json({ 
             success: true,
@@ -102,12 +108,11 @@ userRouter.post('/create', async (req, res) => {
         });
 
     } catch (err) {
-        console.error("Erro detalhado ao criar usuário:", err);
+        console.error("Erro ao criar usuário:", err);
         res.status(500).json({ 
             success: false,
             error: "Erro interno do servidor",
-            message: "Não foi possível criar o usuário. Tente novamente.",
-            details: process.env.NODE_ENV === 'development' ? err.message : undefined
+            message: "Não foi possível criar o usuário. Tente novamente."
         });
     }
 });
