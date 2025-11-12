@@ -1,39 +1,47 @@
 import nodemailer from 'nodemailer';
 
 // email.js - COM GMAIL API
-import fetch from 'node-fetch';
+// email.js - COM RESEND
+import { Resend } from 'resend';
 
-export async function sendVerificationEmail(email, token) {
-    console.log('🎯 ENVIANDO EMAIL VIA GMAIL API PARA:', email);
+const resend = new Resend(process.env.RESEND_API_KEY);
+
+async function sendVerificationEmail(email, token) {
+    console.log('🎯 ENVIANDO EMAIL VIA RESEND PARA:', email);
     
     const verificationUrl = `https://imenu-backend-pd3a.onrender.com/verify-email?token=${token}`;
     
     try {
-        // Enviar email via API do seu próprio backend
-        const response = await fetch('https://imenu-backend-pd3a.onrender.com/api/send-email', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-                to: email,
-                subject: 'Verifique seu email - iMenu',
-                html: `
-                    <div>Clique para verificar: <a href="${verificationUrl}">${verificationUrl}</a></div>
-                `
-            })
+        const { data, error } = await resend.emails.send({
+            from: 'iMenu <onboarding@resend.dev>',
+            to: [email],
+            subject: 'Verifique seu email - iMenu',
+            html: `
+                <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+                    <h2 style="color: #4CAF50; text-align: center;">Bem-vindo ao iMenu!</h2>
+                    <p>Clique no link abaixo para verificar sua conta:</p>
+                    <div style="text-align: center; margin: 20px 0;">
+                        <a href="${verificationUrl}" 
+                           style="background-color: #4CAF50; color: white; padding: 12px 24px; 
+                                  text-decoration: none; border-radius: 5px; display: inline-block;">
+                            ✅ Verificar Email
+                        </a>
+                    </div>
+                    <p>Se você não criou esta conta, ignore este email.</p>
+                </div>
+            `
         });
 
-        if (response.ok) {
-            console.log('✅ Email enviado via API');
-            return true;
-        } else {
-            console.log('❌ Falha no envio via API');
+        if (error) {
+            console.error('❌ ERRO RESEND:', error);
             return false;
         }
 
+        console.log('✅ EMAIL ENVIADO VIA RESEND! ID:', data.id);
+        return true;
+
     } catch (error) {
-        console.error('❌ ERRO NA API:', error.message);
+        console.error('❌ ERRO NO RESEND:', error);
         return false;
     }
 }
