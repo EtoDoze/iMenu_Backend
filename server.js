@@ -15,7 +15,6 @@ import locrouter from './routes/location.js';
 import commentRouter from './routes/commentsRouter.js';
 import cors from 'cors';
 import authenticateToken from './routes/auth.js';
-import testRouter from './routes/test-email.js';
 
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
