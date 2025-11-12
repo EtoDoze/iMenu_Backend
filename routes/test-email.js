@@ -1,71 +1,23 @@
-// routes/test-email.js
-import Express from 'express';
+// test-email.js
 import sendVerificationEmail from '../API/email.js';
 
-const testRouter = Express.Router();
-
-testRouter.get('/test-email', async (req, res) => {
-    console.log('=== 🧪 TESTE DE EMAIL NO RENDER ===');
-    console.log('EMAIL_USER:', process.env.EMAIL_USER || 'UNDEFINED');
-    console.log('EMAIL_PASS:', process.env.EMAIL_PASS ? 'DEFINED' : 'UNDEFINED');
+async function testEmail() {
+    console.log('🧪 TESTANDO CONFIGURAÇÃO DE EMAIL...');
     
-    try {
-        const result = await sendVerificationEmail('test@example.com', 'test-token-123');
-        
-        res.json({
-            success: true,
-            emailConfig: {
-                EMAIL_USER: process.env.EMAIL_USER ? '✅' : '❌',
-                EMAIL_PASS: process.env.EMAIL_PASS ? '✅' : '❌'
-            },
-            emailSent: result,
-            message: result ? 'Email enviado com sucesso' : 'Falha ao enviar email'
-        });
-    } catch (error) {
-        res.json({
-            success: false,
-            error: error.message
-        });
-    }
-});
-
-// Novo teste com email customizado
-testRouter.post('/test-email-custom', async (req, res) => {
-    console.log('=== 🧪 TESTE DE EMAIL CUSTOMIZADO ===');
-    const { email, token } = req.body;
+    const testEmail = 'seu-email@gmail.com'; // Use um email real para teste
+    const testToken = 'test-token-123';
     
-    if (!email) {
-        return res.json({ 
-            success: false, 
-            error: 'Email não fornecido' 
-        });
-    }
-
-    console.log('📧 Enviando para:', email);
-    console.log('🔑 Token:', token || 'não fornecido');
-    console.log('EMAIL_USER:', process.env.EMAIL_USER || '❌ NÃO CONFIGURADO');
-    console.log('EMAIL_PASS:', process.env.EMAIL_PASS ? '✅ CONFIGURADO' : '❌ NÃO CONFIGURADO');
+    const result = await sendVerificationEmail(testEmail, testToken);
     
-    try {
-        const result = await sendVerificationEmail(email, token || 'test-token-' + Date.now());
-        
-        res.json({
-            success: result,
-            emailConfig: {
-                EMAIL_USER: process.env.EMAIL_USER ? '✅ Configurado' : '❌ Não configurado',
-                EMAIL_PASS: process.env.EMAIL_PASS ? '✅ Configurado' : '❌ Não configurado'
-            },
-            emailSent: result,
-            message: result ? '✅ Email enviado com sucesso' : '❌ Falha ao enviar email'
-        });
-    } catch (error) {
-        console.error('❌ Erro:', error);
-        res.json({
-            success: false,
-            error: error.message,
-            errorDetails: error.toString()
-        });
+    if (result) {
+        console.log('✅ Teste de email: SUCESSO');
+    } else {
+        console.log('❌ Teste de email: FALHOU');
+        console.log('💡 Verifique:');
+        console.log('1. Variáveis EMAIL_USER e EMAIL_PASS no .env');
+        console.log('2. Senha de app do Gmail (não use a senha normal)');
+        console.log('3. Verificação em 2 etapas ativada');
     }
-});
+}
 
-export default testRouter;
+testEmail();

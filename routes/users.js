@@ -16,6 +16,7 @@ import jwt from 'jsonwebtoken';
 const SECRET_KEY = process.env.SECRET_KEY;
 
 
+await sendVerificationEmail('pocehe7768@delaeb.com', '31313131');
 // Criar usuário
 // No backend, na rota /create, adicione tratamento melhor:
 userRouter.post('/create', async (req, res) => {
