@@ -25,7 +25,6 @@ console.log('EMAIL_USER:', process.env.EMAIL_USER || 'Não configurado');
 const prisma = new PrismaClient;
 const app = Express();
 app.use(userRouter)
-app.use(testRouter)
 app.use(commentRouter)
 app.use(admRouter)
 app.use(emailrouter)
