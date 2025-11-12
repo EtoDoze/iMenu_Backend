@@ -1,3 +1,8 @@
+import dotenv from 'dotenv';
+
+// ✅ CARREGAR .env PRIMEIRO - ANTES DE QUALQUER OUTRA COISA
+dotenv.config();
+
 import Express from 'express';
 import { PrismaClient } from "@prisma/client";
 import userRouter from './routes/users.js';
@@ -14,10 +19,6 @@ import testRouter from './routes/test-email.js';
 
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
-import dotenv from 'dotenv';
-
-// ✅ CARREGAR .env PRIMEIRO
-dotenv.config();
 
 console.log('🔍 Variáveis carregadas:');
 console.log('EMAIL_USER:', process.env.EMAIL_USER || 'Não configurado');
