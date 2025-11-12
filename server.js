@@ -61,11 +61,9 @@ app.get('/api/geocode', async (req, res) => {
   }
 });
 
-import { exec } from 'child_process';
 
 
 // Executa as migrações no início do servidor
-import { execSync } from "child_process";
 if (process.env.NODE_ENV !== "production") {
     execSync("npx prisma migrate dev", { stdio: "inherit" });
 }
