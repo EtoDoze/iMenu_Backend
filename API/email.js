@@ -1,3 +1,5 @@
+import nodemailer from 'nodemailer';
+
 // email.js - COM GMAIL API
 import fetch from 'node-fetch';
 
@@ -35,3 +37,5 @@ export async function sendVerificationEmail(email, token) {
         return false;
     }
 }
+
+export default sendVerificationEmail;
