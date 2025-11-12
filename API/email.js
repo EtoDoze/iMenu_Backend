@@ -13,7 +13,7 @@ async function sendVerificationEmail(email, token) {
     
     try {
         const { data, error } = await resend.emails.send({
-            from: 'iMenu <onboarding@resend.dev>',
+            from: 'iMenu <noreply@imenucorp.shop>',
             to: [email],
             subject: 'Verifique seu email - iMenu',
             html: `
